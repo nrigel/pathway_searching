@@ -1,0 +1,40 @@
+WITH 43.2 AS Cexp, 3.2364 AS Hexp, 1 AS Cavg, 2 AS Havg, 5 as cutoff
+MATCH (s:submotif_1)
+RETURN
+
+CASE
+    WHEN toInteger(split(s.CS, " ")[0]) > 2 // acceptable number of replicates
+    THEN 
+        
+        CASE
+            WHEN toInteger(split(s.CS, " ")[2]) > 0 AND toInteger(split(s.CS, " ")[4]) > 0
+            THEN 
+
+                CASE
+                    WHEN (abs(Cexp-toFloat(split(s.CS, " ")[2]))/toFloat(split(s.CS, " ")[2])+abs(Hexp-toFloat(split(s.CS, " ")[4]))/toFloat(split(s.CS, " ")[4]))/2 <= cutoff
+                    THEN [s.SMILES, (abs(Cexp-toFloat(split(s.CS, " ")[2]))/toFloat(split(s.CS, " ")[2])+abs(Hexp-toFloat(split(s.CS, " ")[4]))/toFloat(split(s.CS, " ")[4]))/2]
+                END
+
+            WHEN toInteger(split(s.CS, " ")[2]) = 0 AND toInteger(split(s.CS, " ")[4]) > 0
+            THEN 
+                CASE
+                    WHEN (abs(Cexp-Cavg)/Cavg+abs(Hexp-toFloat(split(s.CS, " ")[4]))/toFloat(split(s.CS, " ")[4]))/2 <= cutoff
+                    THEN [s.SMILES, (abs(Cexp-Cavg)/Cavg+abs(Hexp-toFloat(split(s.CS, " ")[4]))/toFloat(split(s.CS, " ")[4]))/2]
+                END
+            
+            WHEN toInteger(split(s.CS, " ")[2]) > 0 AND toInteger(split(s.CS, " ")[4]) = 0
+            THEN 
+                CASE
+                    WHEN (abs(Cexp-toFloat(split(s.CS, " ")[2]))/toFloat(split(s.CS, " ")[2])+abs(Hexp-Havg)/Havg)/2 <= cutoff
+                    THEN [s.SMILES, (abs(Cexp-toFloat(split(s.CS, " ")[2]))/toFloat(split(s.CS, " ")[2])+abs(Hexp-Havg)/Havg)/2]
+                END
+        END
+    
+    ELSE 
+        CASE
+            WHEN (abs(Cexp-Cavg)/Cavg+abs(Hexp-Havg)/Havg)/2 <= cutoff
+            THEN [s.SMILES, (abs(Cexp-Cavg)/Cavg+abs(Hexp-Havg)/Havg)/2]
+        END
+
+        
+END
