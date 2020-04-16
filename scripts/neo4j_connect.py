@@ -39,12 +39,53 @@ class NMRTServer(object):
                     self.metabolites['networkx'].add_edge(relationship.start_node['Compound'], relationship.end_node['Metabolite']+'_'+str(relationship.end_node['Node']), neo4j=relationship)
         return self.metabolites
 
+    def getvalidpairs(self):
+        if 'valid_pairs' not in dir(self):
+            with self._driver.session() as db:
+                g = db.run('MATCH (s:submotif_2)-[r:motifProductClique]-(p:motifProducts_2) RETURN *').graph()
+                R = {}
+                for relationship in g.relationships:
+                    clique = relationship.end_node['SMILES']+'^'+str(relationship['clique'])
+                    if clique not in R:
+                        R[clique] = []
+                    R[clique].extend([relationship.start_node['SMILES']])
+                self.valid_pairs = {}
+                for clique in R:
+                    pair = tuple(sorted(R[clique], key=lambda x: x))
+                    if pair not in self.valid_pairs:
+                        self.valid_pairs[pair] = []
+                    self.valid_pairs[pair].extend([clique.split('^')[0]])
+        return self.valid_pairs
+
+    def assignmotifproducts(self, N):
+        if 'motifProductAssignments' not in dir(self):
+            self.motifProductAssignments = {}
+        if N not in self.motifProductAssignments:
+            self.motifProductAssignments[N] = {}
+            with self._driver.session() as db:
+                g = db.run('MATCH (p:motifProducts_'+str(N)+')-[r:motifProductClique]-(s:submotif_2) RETURN *').graph()
+                for relationship in g.relationships:
+                    if 'CS' not in relationship.start_node.keys():
+                        continue
+                    clique = relationship.end_node['SMILES']+'^'+str(relationship['clique'])
+                    if clique not in self.motifProductAssignments[N]:
+                        self.motifProductAssignments[N][clique] = {'CS': {}, 'replicates': {}, 'SMILES': {}, 'Complete': relationship.end_node['Complete']}
+                    node = len(self.motifProductAssignments[N][clique]['CS'])+1
+                    r, C, c, H, h = relationship.start_node['CS'].split()
+                    self.motifProductAssignments[N][clique]['SMILES'][node] = relationship.start_node['SMILES']
+                    self.motifProductAssignments[N][clique]['replicates'][node] = int(r)
+                    self.motifProductAssignments[N][clique]['CS'][node] = {(float(C), float(c)): (float(H), float(h))}
+        return self.motifProductAssignments[N]            
+
 
 class ReactomeServer(object):
     
     def __init__(self, uri='bolt://127.0.0.1:'+dbsettings['Reactome']['port']+'/', user=dbsettings['Reactome']['user'], password=dbsettings['Reactome']['password']):
         self._driver = GraphDatabase.driver(uri, auth=(user, password))
         
+        with self._driver.session() as db:
+            self.specieslist = db.run('MATCH (s:Species) RETURN s.displayName').value()
+
     def close(self):
         self._driver.close()
 
@@ -59,7 +100,15 @@ class ReactomeServer(object):
             # https://neo4j.com/docs/api/python-driver/current/types/graph.html
             self.graphs = {'submotifs': {}, 'motifs': {}, 'metabolites': {}}
             with self._driver.session() as db:
-                
+
+                self.graphs['pathways_to_processes'] = {}
+                self.graphs['pathways_to_processes']['Neo4j'] = db.run('MATCH (p:Pathway)-[r:goBiologicalProcess]-(P:GO_BiologicalProcess) RETURN *').graph()
+                self.graphs['pathways_to_processes']['networkx'] = nx.Graph()
+                for node in self.graphs['pathways_to_processes']['Neo4j'].nodes:
+                    self.graphs['pathways_to_processes']['networkx'].add_node(node['dbId'], labels=node.labels, name=node['displayName'], neo4j=node)
+                for relationship in self.graphs['pathways_to_processes']['Neo4j'].relationships:
+                    self.graphs['pathways_to_processes']['networkx'].add_edge(relationship.start_node['dbId'], relationship.end_node['dbId'], neo4j=relationship)
+
                 self.graphs['metabolites_to_pathways'] = {}
                 self.graphs['metabolites_to_pathways']['Neo4j'] = db.run('MATCH (m:Metabolite)-[r:metabolizedIn]-(p) RETURN *').graph()
                 self.graphs['metabolites_to_pathways']['networkx'] = nx.Graph()
