@@ -1,3 +1,7 @@
+
+chebi_hmdb_conversion/HMDB_structures.sdf
+chebi_hmdb_conversion/ChEBI_complete.sdf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

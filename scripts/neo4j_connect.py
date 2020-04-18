@@ -142,6 +142,7 @@ class ReactomeServer(object):
         self.generategraphs()
         P = self.graphs['metabolites_to_pathways']['networkx']
         results = {}
+        test = 0
         if structuretype == 'motifs' or structuretype == 'submotifs':
             G = self.graphs[structuretype][shell]['networkx']
             if SMILES in G.nodes:
@@ -152,7 +153,7 @@ class ReactomeServer(object):
                         if species not in results:
                             results[species] = []
                         results[species].extend([name])
-        
+
         elif structuretype == 'metabolites':
             for p in P.edges(SMILES):
                 pathway = [n for n in p if n != SMILES][0]
@@ -160,7 +161,6 @@ class ReactomeServer(object):
                 if species not in results:
                     results[species] = []
                 results[species].extend([name])
-
         return results
 
     def pathwayvis(self):

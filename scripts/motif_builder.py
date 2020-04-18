@@ -19,21 +19,35 @@ class MotifBuilder(object):
             #command = ['MATCH (s:submotif_2) WHERE (s)<-[:includedIn]-(:Database {Name:"COLMAR"}) AND size(split(s.SMILES, "_")) > 1']
             #command.extend(['RETURN ([avg(toFloat(split(s.CS, " ")[2])), avg(toFloat(split(s.CS, " ")[4]))])'])
             #avgs = session.run('\n'.join(command))
+
             # get highest cache level -> "N"
             #N_max = max(session.run('MATCH (p:motifProducts) WHERE p.Complete = "True" RETURN (p.N)').value())
             N_max = 5
             if N_max >= len(matchingDict):
-                N = len(matchingDict)
+                N_ss = len(matchingDict)
                 search_for_completemotifs = True
             else:
-                N = N_max
+                N_ss = N_max
                 search_for_completemotifs = False
-            #N=2
+        
+            dblabels = session.run('call db.labels()').value()
+            command = []
+            for label in dblabels:
+                rmlabels = ['matchedSubMotif_'+str(session_id)]+['matchedMotifProduct_'+str(i)+'_'+str(session_id) for i in range(2, N_ss)]
+                for l in rmlabels:
+                    if label[:len(l)] == l:
+                        command.extend(['MATCH (n:'+label+') REMOVE n:'+label+' RETURN (n)'])
+                        command.extend(['UNION'])
+            if len(command) > 0:
+                session.run('\n'.join(command[:-1]))
+
             nodelist = list(matchingDict.keys())
             # set up session
+            start = time.time()
             command = ['CREATE (Q: MBQ {Session_ID: "'+str(session_id)+'"})'] # create our session
             # add in cs nodes and matching data
             for node in nodelist:
+                #print(len(matchingDict[node]))
                 command.extend(['CREATE (n'+str(node)+':MBQNodes {Node:'+str(node)+', Session_ID:"'+str(session_id)+'"})'])
                 command.extend(['CREATE (Q)-[:mbqNode]->(n'+str(node)+')'])
             command.extend(['WITH Q'])
@@ -41,59 +55,66 @@ class MotifBuilder(object):
                 command.extend(['MATCH (n:MBQNodes) WHERE n.Node = '+str(node)+' AND n.Session_ID = "'+str(session_id)+'"'])
                 command.extend(['MATCH (s:submotif_2) WHERE s.SMILES IN ['+', '.join(['"'+s+'"' for s in matchingDict[node].keys()])+']'])
                 command.extend(['CREATE (n)-[:matchedSubMotif]->(s)'])
-                command.extend(['SET s:matchedSubMotif_'+str(session_id)+'_n'+str(node)])
+                command.extend(['SET s:matchedSubMotif_'+str(session_id)+'_n'+str(node)+', s:matchedSubMotif_'+str(session_id)])
                 command.extend(['RETURN (n)'])
                 command.extend(['UNION'])
             session.run('\n'.join(command[:-1]))
-            nodelist = list(matchingDict.keys())
             
-            # search for motif products
-            motifs = {}          
-            if len(nodelist) == N:
-                command = ['MATCH (p:motifProducts_'+str(N)+') WHERE p.Complete = "True"']
-            else:
-                command = ['MATCH (p:motifProducts_'+str(N)+') WHERE p.Complete = "False"']
-            for node in nodelist:
-                command.extend(['AND (p)<-[:motifProductClique]-(:matchedSubMotif_'+str(session_id)+'_n'+str(node)+')'])
-            
-            command.extend(['MATCH (p)<-[r:motifProductClique]-(s:submotif_2)']) #
-            command.extend(['RETURN ([p.SMILES, r.clique, ID(r), s.SMILES, labels(s)])'])
-            motif_hits = session.run('\n'.join(command)).value()
-
-            cliques = {M:{} for M in set([m[0] for m in motif_hits])}
-            for m in motif_hits:
-                if len(m[4]) > 1:
-                    if m[1] not in cliques[m[0]]:
-                        cliques[m[0]][m[1]] = {}
-                    for s in m[4]:
-                        if s[:len('matchedSubMotif_'+str(session_id))] == 'matchedSubMotif_'+str(session_id):
-                            node = int(s[len('matchedSubMotif_'+str(session_id))+2:])
-                            if node not in cliques[m[0]][m[1]]:
-                                cliques[m[0]][m[1]][node] = []
-                            cliques[m[0]][m[1]][node].extend([(m[3], m[2])])
-            # cliques: motif: clique_number: node: [(submotif smiles, relationship ID)]
             motifs = {}
-            for motif in cliques:
-                for clique in cliques[motif]:
-                    if len(cliques[motif][clique]) != N:
-                        continue
-                    nodes = list(cliques[motif][clique].keys())
-                    submotifs = [cliques[motif][clique][node] for node in nodes]
-                    for combo in itertools.product(*submotifs):
-                        rel_ids = [c[1] for c in combo]
-                        if len(set(rel_ids)) != N:
+            
+            complete = '"False"'
+            if 2 == len(nodelist):
+                complete = '"True"'
+            p1 = session.run('MATCH (s2:matchedSubMotif_'+str(session_id)+')-[r2:motifProductClique]->(p:motifProducts_2)<-[r1:motifProductClique]-(s1:matchedSubMotif_'+str(session_id)+') WHERE p.Complete = '+complete+' AND r1.clique = r2.clique AND ID(r1) <> ID(r2) RETURN ([p.SMILES, r1.clique, s1.SMILES, s2.SMILES, labels(s1), labels(s2)])').value()
+            P1 = {}
+            for product in p1:
+                p, c, s1, s2, l1, l2 = product
+                n1 = [int(l.split('_')[-1][1:]) for l in l1 if l[:len('matchedSubMotif_'+str(session_id))] == 'matchedSubMotif_'+str(session_id) and len(l) > len('matchedSubMotif_'+str(session_id))]
+                n2 = [int(l.split('_')[-1][1:]) for l in l2 if l[:len('matchedSubMotif_'+str(session_id))] == 'matchedSubMotif_'+str(session_id) and len(l) > len('matchedSubMotif_'+str(session_id))]
+                for n in n1:
+                    for N in n2:
+                        if n == N:
                             continue
-                        if motif not in motifs:
-                            motifs[motif] = []
-                        motifs[motif].extend([tuple(sorted([(nodes[i], combo[i][0]) for i in range(len(nodes))], key=lambda x: x[0]))])  
-            #print(session.run('MATCH (n) RETURN distinct labels(n)').value())
+                        if p not in P1:
+                            P1[p] = []
+                        P1[p].extend([tuple(sorted([(n, s1), (N, s2)], key=lambda x: x[0]))])
+            
+            for i in range(2, N_ss):
+                m1 = '['+', '.join(['"'+p+'"' for p in P1.keys()])+']'
+                session.run('MATCH (m:motifProducts_'+str(i)+') WHERE m.SMILES IN '+m1+' SET m:matchedMotifProduct_'+str(i)+'_'+str(session_id)+' RETURN (count(m))')
+                complete = '"False"'
+                if i+1 == len(nodelist):
+                    complete = '"True"'
+                p2 = session.run('MATCH (s2:matchedSubMotif_'+str(session_id)+')-[r2:motifProductClique]->(p:motifProducts_'+str(i+1)+')<-[r1:motifProductClique]-(s1:matchedMotifProduct_'+str(i)+'_'+str(session_id)+') WHERE p.Complete = '+complete+' AND r1.clique = r2.clique AND ID(r1) <> ID(r2) RETURN ([p.SMILES, r1.clique, s1.SMILES, s2.SMILES, labels(s1), labels(s2)])').value()
+                P2 = {}
+                for product in p2:
+                    p, c, s1, s2, l1, l2 = product
+                    n2 = [int(l.split('_')[-1][1:]) for l in l2 if l[:len('matchedSubMotif_'+str(session_id))] == 'matchedSubMotif_'+str(session_id) and len(l) > len('matchedSubMotif_'+str(session_id))]
+                    for clique in P1[s1]:
+                        n1 = [str(n[0]) for n in clique]
+                        for N in n2:
+                            if str(N) not in n1:
+                                if p not in P2:
+                                    P2[p] = []
+                                P2[p].extend([tuple(sorted(list(clique)+[(N, s2)], key=lambda x: x[0]))])
+                P1 = P2
+
+            for product in P1:
+                motifs[product] = list(set(P1[product]))
+    
+            motifs = {m: list(set(motifs[m])) for m in motifs}
+            
             command = []
             for node in nodelist:
-                command.extend(['MATCH (n:matchedSubMotif_'+str(session_id)+'_n'+str(node)+') REMOVE n:matchedSubMotif_'+str(session_id)+'_n'+str(node)+' RETURN (n)'])
+                command.extend(['MATCH (n:matchedSubMotif_'+str(session_id)+'_n'+str(node)+') REMOVE n:matchedSubMotif_'+str(session_id)+'_n'+str(node)+' RETURN (count(n))'])
                 command.extend(['UNION'])
-            session.run('\n'.join(command[:-1]))
+            for i in range(2, N_ss):
+                command.extend(['MATCH (n:matchedMotifProduct_'+str(i)+'_'+str(session_id)+') REMOVE n:matchedMotifProduct_'+str(i)+'_'+str(session_id)+' RETURN (count(n))'])
+                command.extend(['UNION'])
+            command.extend(['MATCH (n:matchedSubMotif_'+str(session_id)+') REMOVE n:matchedSubMotif_'+str(session_id)+' RETURN (count(n))'])
+            session.run('\n'.join(command))
 
-            return [motifs, N]
+            return [motifs, N_ss]
 
 
 

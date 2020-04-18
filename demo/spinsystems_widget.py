@@ -1,8 +1,9 @@
-import sys
+import sys, pickle, io
 sys.path.append('../scripts')
 from pathway_searching import PathwayMapper
 from motif_builder import MotifBuilder
 
+from PySide2.QtCore import QByteArray
 from PySide2.QtWidgets import QWidget
 
 class SpinSystems(QWidget):
@@ -14,6 +15,9 @@ class SpinSystems(QWidget):
         self.spinsystems = self.retrieveSpinSystemList()
         self.MotifBuilder = MotifBuilder()
         self.built_motifs = {}
+
+        with open('../COLMAR_spinsystem_SVGs.pkl', 'rb') as pkl:
+            self.spinsystem_SVGs = pickle.load(pkl)
 
     def retrieveSpinSystemList(self):
         spinsystems = {}
@@ -34,8 +38,11 @@ class SpinSystems(QWidget):
         # matches[i][motif] = {'zscore': zscore, 'assignments': assignments, 'CS': csdict}
         self.built_motifs = {}
         for motif in motifs:
-            if motifs[motif][-1] <= self.MotifBuilder.matching_cutoff:
-                self.build_motifs[motif] = motifs[motif]
+            if motif[-1] <= self.MotifBuilder.matching_cutoff:
+                self.built_motifs[motif[0]] = motif
+        self.main_widget.builtmotiflist.clear()
+        self.main_widget.builtmotiflist.addItems(sorted(list(self.built_motifs.keys()), key=lambda x: x))
+        self.main_widget.builtmotifcount.setText('Count: '+str(len(self.built_motifs)))
 
     def displayspinsystem(self, spinsystem):
         # show some stuff
@@ -45,6 +52,12 @@ class SpinSystems(QWidget):
             H = self.spinsystems[spinsystem][node][C]
             cstext.extend([str(node)+'  '+str(C)+'  '+str(H)])
         self.main_widget.csbox.setText('\n'.join(cstext))
+        #if spinsystem in self.spinsystem_SVGs:
+            #svg = QByteArray()
+            #QByteArray("Hello")
+            #print(type(self.spinsystem_SVGs[spinsystem]))
+            #svg.fromRawData(self.spinsystem_SVGs[spinsystem])
+            #self.main_widget.structure_disp.load(svg)
 
     def pathwaysearch(self, spinsystem):
         # search for matching pathways

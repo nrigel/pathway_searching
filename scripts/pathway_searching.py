@@ -34,7 +34,6 @@ class PathwayMapper(object):
                 # Reactome does not include spin-systems in the SMILES
                 pathway_matches['motifs'][shell][motif] = self.Reactome.pathwaymatch(motif.split('_')[0], structuretype='motifs', shell=shell)
                 # motif: {species: pathway list}
-
         return pathway_matches
 
     def spinsystem(self, ss, motiflist={}):
@@ -54,6 +53,7 @@ class PathwayMapper(object):
             # integrate motif builder/write smaller script than we have and call it from here
             # check that pathway matching to the motiflist inputted above actually works
             # update reactome database?
+                # add metabolites that are not in our databases
                 # review what we did last time
                 # make new one with all possible compounds
                 # then make sub-motif and motif portions that we can search for
