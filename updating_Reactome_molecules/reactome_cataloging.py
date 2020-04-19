@@ -70,7 +70,7 @@ with Reactome._driver.session() as db:
         motifs = {'motif_'+str(i): '['+', '.join(['"'+m+'"' for m in motifs[i]])+']' for i in motifs}
         submotifs = {'submotif_'+str(i): '['+', '.join(['"'+m+'"' for m in submotifs[i]])+']' for i in submotifs}
         
-        command = 'MATCH (m:ReferenceMolecule) WHERE m.displayName = "'+compound+'" SET m.spinsystems = '+spinsystems+', m.nodes = '+nodes
+        command = 'MATCH (m:ReferenceMolecule) WHERE m.displayName = "'+compound+'" SET m.SMILES_2D = "'+smiles+'", m.SMILES_3D = "'+can_smiles+'", m.spinsystems = '+spinsystems+', m.nodes = '+nodes
         command = command+', '+', '.join(['m.'+m+' = '+motifs[m] for m in motifs])+', '+', '.join(['m.'+m+' = '+submotifs[m] for m in submotifs])
         db.run(command)
         
