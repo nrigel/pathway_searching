@@ -21,24 +21,76 @@ with Reactome._driver.session() as db:
 
         reactome_to_chebi[compound] = chebi
 
-with open('chebi_smiles.pkl', 'rb') as pkl:
+with open('HMDB_SMILES_noH.pkl', 'rb') as pkl:
+    hmdb_smiles = pickle.load(pkl)
+smiles_hmdb = {}
+for hmdb in hmdb_smiles:
+    if hmdb_smiles[hmdb] not in smiles_hmdb:
+        smiles_hmdb[hmdb_smiles[hmdb]] = []
+    smiles_hmdb[hmdb_smiles[hmdb]].extend([hmdb])
+
+with open('CHEBI_SMILES_noH.pkl', 'rb') as pkl:
     chebi_smiles = pickle.load(pkl)
 
+with open('BMRB_SMILES_noH.pkl', 'rb') as pkl:
+    bmrb_smiles = pickle.load(pkl)
+smiles_bmrb = {}
+for bmrb in bmrb_smiles:
+    if bmrb_smiles[bmrb] not in smiles_bmrb:
+        smiles_bmrb[bmrb_smiles[bmrb]] = []
+    smiles_bmrb[bmrb_smiles[bmrb]].extend([bmrb])
+
+with open('colmar_to_hmdb.pkl', 'rb') as pkl:
+    colmar_to_hmdb = pickle.load(pkl)
+# want to add COLMAR IDs and HMDB IDs to Reactome molecules
+hmdb_to_colmar = {} # reverse dict
+for colmar in colmar_to_hmdb:
+    if type(colmar_to_hmdb[colmar]) == str:
+        if colmar_to_hmdb[colmar] not in hmdb_to_colmar:
+            hmdb_to_colmar[colmar_to_hmdb[colmar]] = []
+        hmdb_to_colmar[colmar_to_hmdb[colmar]].extend([colmar])
+    if type(colmar_to_hmdb[colmar]) == list:
+        for hmdb in colmar_to_hmdb[colmar]:
+            if hmdb not in hmdb_to_colmar:
+                hmdb_to_colmar[hmdb] = []
+            hmdb_to_colmar[hmdb].extend([colmar])
 
 with Reactome._driver.session() as db:
     for compound in reactome_to_chebi:
-        print(compound)
+        
         chebi = reactome_to_chebi[compound]
+
         if chebi not in chebi_smiles:
             continue
-        smiles = chebi_smiles[chebi]
-        S = Compound(smiles)
         
+        #print(compound)
+
+        S = Compound(chebi_smiles[chebi])
+        smiles = chebi_smiles[chebi]
+
         if not S.spinsystems(): # skip molecules that don't have carbons because they are irrelavant to us
             continue
         
         S.canonicalize()
         can_smiles = S.smiles
+        SMILES = smiles
+        while 1:
+            hmdb = []
+            colmar = []
+            if SMILES in smiles_hmdb:
+                hmdb = smiles_hmdb[SMILES]
+                for h in hmdb:
+                    if h in hmdb_to_colmar:
+                        colmar.extend(hmdb_to_colmar[h])
+            if SMILES in smiles_bmrb:
+                colmar.extend(smiles_bmrb[SMILES])
+            if colmar or SMILES == can_smiles:
+                break
+            SMILES = can_smiles
+
+        hmdb = '['+', '.join(['"'+h+'"' for h in hmdb]) +']'
+        colmar = '['+', '.join(['"'+h+'"' for h in colmar]) +']'
+
         
         motifs, spinsystems = {}, {ss: [] for ss in S.spinsystems()}
         for i in range(0, 3):
@@ -70,7 +122,7 @@ with Reactome._driver.session() as db:
         motifs = {'motif_'+str(i): '['+', '.join(['"'+m+'"' for m in motifs[i]])+']' for i in motifs}
         submotifs = {'submotif_'+str(i): '['+', '.join(['"'+m+'"' for m in submotifs[i]])+']' for i in submotifs}
         
-        command = 'MATCH (m:ReferenceMolecule) WHERE m.displayName = "'+compound+'" SET m.SMILES_2D = "'+smiles+'", m.SMILES_3D = "'+can_smiles+'", m.spinsystems = '+spinsystems+', m.nodes = '+nodes
+        command = 'MATCH (m:ReferenceMolecule) WHERE m.displayName = "'+compound+'" SET m.CHEBI = "'+chebi+'", m.SMILES_3D = "'+smiles.replace('\\', '').replace('/', '')+'", m.SMILES_2D = "'+can_smiles+'", m.HMDB = '+hmdb+', m.COLMAR = '+colmar+', m.spinsystems = '+spinsystems+', m.nodes = '+nodes
         command = command+', '+', '.join(['m.'+m+' = '+motifs[m] for m in motifs])+', '+', '.join(['m.'+m+' = '+submotifs[m] for m in submotifs])
         db.run(command)
-        
+
