@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key attr.name="pvalue" attr.type="double" for="node" id="d2" />
+  <key attr.name="fold_change" attr.type="double" for="node" id="d1" />
+  <key attr.name="type" attr.type="string" for="node" id="d0" />
+  <graph edgedefault="undirected">
+    <node id="Acetic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9787368318166438</data>
+      <data key="d2">0.08474610227442238</data>
+    </node>
+    <node id="gamma_Aminobutyric_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.7494335600054399</data>
+      <data key="d2">1.6084386080576938</data>
+    </node>
+    <node id="Phosphoethanolamine">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8597493392612876</data>
+      <data key="d2">2.7992372651049977</data>
+    </node>
+    <node id="D_Aspartate">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.4325073014458503</data>
+      <data key="d2">5.578174488850776</data>
+    </node>
+    <node id="Mitochondrial tRNA aminoacylation">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Aspartate and asparagine metabolism">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Purine ribonucleoside monophosphate biosynthesis">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Cytosolic tRNA aminoacylation">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="ATP">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8606167575728665</data>
+      <data key="d2">2.322909686765366</data>
+    </node>
+    <node id="Interconversion of nucleotide di- and triphosphates">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Glutathione synthesis and recycling">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Creatine metabolism">
+      <data key="d0">pathway</data>
+    </node>
+    <node id="Creatine">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.8160882058682257</data>
+      <data key="d2">6.264830254070741</data>
+    </node>
+    <node id="Creatine_phosphate">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.0088221397731743</data>
+      <data key="d2">0.044231725299714544</data>
+    </node>
+    <node id="DSS">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.022606219292041</data>
+      <data key="d2">0.09266080015061334</data>
+    </node>
+    <node id="L_Glutamine">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8903959082130188</data>
+      <data key="d2">0.6358541993176435</data>
+    </node>
+    <node id="L_Glutathione_reduced">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.3455101741876736</data>
+      <data key="d2">2.298960597911102</data>
+    </node>
+    <node id="Glycerol">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.970542129318786</data>
+      <data key="d2">0.03498386567848538</data>
+    </node>
+    <node id="Glycine">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.7682938981429247</data>
+      <data key="d2">2.8373475159337893</data>
+    </node>
+    <node id="L_Glutamic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8380164689784598</data>
+      <data key="d2">1.9496220999707536</data>
+    </node>
+    <node id="HEPES">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9842842497699071</data>
+      <data key="d2">0.15482634766671255</data>
+    </node>
+    <node id="Lysine">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8529578239430124</data>
+      <data key="d2">0.6854844536043213</data>
+    </node>
+    <node id="Putrescine">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.2379184825797367</data>
+      <data key="d2">1.6448663622800563</data>
+    </node>
+    <node id="Tetramethylammonium">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9932441924976217</data>
+      <data key="d2">0.046807133129952744</data>
+    </node>
+    <node id="Taurine">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.5098287291268024</data>
+      <data key="d2">5.245093517964958</data>
+    </node>
+    <node id="UTP">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9266213828455051</data>
+      <data key="d2">0.5439142990259862</data>
+    </node>
+    <node id="Phosphorylcholine">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8164335178671717</data>
+      <data key="d2">1.3209791986480155</data>
+    </node>
+    <edge source="D_Aspartate" target="Mitochondrial tRNA aminoacylation" />
+    <edge source="D_Aspartate" target="Aspartate and asparagine metabolism" />
+    <edge source="D_Aspartate" target="Purine ribonucleoside monophosphate biosynthesis" />
+    <edge source="D_Aspartate" target="Cytosolic tRNA aminoacylation" />
+    <edge source="Mitochondrial tRNA aminoacylation" target="ATP" />
+    <edge source="Mitochondrial tRNA aminoacylation" target="L_Glutamine" />
+    <edge source="Mitochondrial tRNA aminoacylation" target="Glycine" />
+    <edge source="Mitochondrial tRNA aminoacylation" target="L_Glutamic_acid" />
+    <edge source="Mitochondrial tRNA aminoacylation" target="Lysine" />
+    <edge source="Aspartate and asparagine metabolism" target="ATP" />
+    <edge source="Aspartate and asparagine metabolism" target="L_Glutamine" />
+    <edge source="Aspartate and asparagine metabolism" target="L_Glutamic_acid" />
+    <edge source="Purine ribonucleoside monophosphate biosynthesis" target="ATP" />
+    <edge source="Purine ribonucleoside monophosphate biosynthesis" target="L_Glutamine" />
+    <edge source="Purine ribonucleoside monophosphate biosynthesis" target="Glycine" />
+    <edge source="Cytosolic tRNA aminoacylation" target="ATP" />
+    <edge source="Cytosolic tRNA aminoacylation" target="L_Glutamine" />
+    <edge source="Cytosolic tRNA aminoacylation" target="Glycine" />
+    <edge source="Cytosolic tRNA aminoacylation" target="L_Glutamic_acid" />
+    <edge source="Cytosolic tRNA aminoacylation" target="Lysine" />
+    <edge source="ATP" target="Interconversion of nucleotide di- and triphosphates" />
+    <edge source="ATP" target="Glutathione synthesis and recycling" />
+    <edge source="ATP" target="Creatine metabolism" />
+    <edge source="Interconversion of nucleotide di- and triphosphates" target="L_Glutamine" />
+    <edge source="Interconversion of nucleotide di- and triphosphates" target="L_Glutathione_reduced" />
+    <edge source="Interconversion of nucleotide di- and triphosphates" target="UTP" />
+    <edge source="Glutathione synthesis and recycling" target="L_Glutathione_reduced" />
+    <edge source="Glutathione synthesis and recycling" target="Glycine" />
+    <edge source="Glutathione synthesis and recycling" target="L_Glutamic_acid" />
+    <edge source="Creatine metabolism" target="Creatine" />
+    <edge source="Creatine metabolism" target="Creatine_phosphate" />
+    <edge source="Creatine metabolism" target="Glycine" />
+  </graph>
+</graphml>
