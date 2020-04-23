@@ -101,6 +101,9 @@ class MainWidget(QWidget):
         specieslist = self.spinsystems_widget.pathwaymapper.Reactome.specieslist
         specieslist.remove('Homo sapiens')
         specieslist = ['Homo sapiens']+sorted(specieslist, key=lambda x: x)
+        
+        print(''.join(['<option value = "'+s+'">'+s+'</option>' for s in specieslist]))
+
         self.species_menu.addItems(specieslist)
         self.left_layout.addWidget(self.species_menu)
     
