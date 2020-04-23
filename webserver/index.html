@@ -9,23 +9,22 @@
 <link rel="stylesheet" type="text/css" href="http://spin.ccic.osu.edu//mystyles2.css">
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
     <script type="text/javascript" src="Scripts/pathway_search.js" ></script>
-    <script src="https://unpkg.com/neo4j-driver"></script>
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.14.1/cytoscape.min.js"></script>
     
     <title>COLMAR-Pathways</title>
     
     <style>
 
-.overlay {
-  fill: none;
-  pointer-events: all;
-}
+    .overlay {
+      fill: none;
+      pointer-events: all;
+    }
 
-.brush .extent {
-  stroke: #fff;
-  fill-opacity: .125;
-  shape-rendering: crispEdges;
-}
+    .brush .extent {
+      stroke: #fff;
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
 
 </style>
     
@@ -92,29 +91,27 @@
         <h2>COLMAR-Pathways</h2>
         
         
-        <form id="process_load" enctype="multipart/form-data" method="post" accept-charset="utf-8">
-        <div id="step1" class="topclass" style="width: 550px; height: 240px">
+        <form onsubmit="return false;" id="process_load" enctype="multipart/form-data" method="post" accept-charset="utf-8">
         
-  
-        <strong>STEP1</strong>: Metabolite Submission<br>
-        <p>Your name and institute* <input type="text" name="username" value="" size="40"><br><br>
-        Metabolite File:  <input type="file" name="userfile" value="None" id="fileinput"><br><br>
-        CSV Format: COLMAR ID, P-Value, Fold Change<br><br>
-        <p><br></p></p>
+        <div id="step1" class="topclass" style="width: 48%; height: 240px">
+          <strong>STEP1</strong>: Metabolite Submission<br>
+          <p>Your name and institute* <input type="text" name="username" value="" size="40"><br><br>
+          Metabolite File (CSV):  <input type="file" name="userfile" value="None" id="fileinput"><br><br>
+          Example:<br>
+          <center><table id="prev_table" style="width:90%"><tr><th>COLMAR ID or Name</th><th>P-Value</th><th>Fold Change</th></tr><tr><td>ATP</td><td>0.75</td><td>1.08</td></tr>
+          <tr><td>bmse000191</td><td>0.60</td><td>1.39</td></tr></table></center><p><br></p></p>
         </div>
 
-        <div id="step2" class="topclass" style="width: 500px; height: 240px">    
-            
-
-            <strong>STEP2</strong>: Pathway Options<br> 
+        <div id="step2" class="topclass" style="width: 48%; height: 240px">    
+          <strong>STEP2</strong>: Pathway Options<br> 
           
           <br><input type="checkbox" name="metabolites" value="value" id="metabolites" checked> <font color="blue">Metabolites</font>
-          <br><input type="checkbox" name="motifs" value="value" onchange="check_change('motifs')" id="motifs"> <font color="darkgreen">Motifs - </font>
+          <br><input type="checkbox" name="motifs" value="value" onclick="check_change('motifs')" id="motifs"> <font color="darkgreen">Motifs - </font>
           <input type="checkbox" name="motif_0" value="value" id="motif_0"> <font color="darkgreen">0<sup>th</sup></font>
           <input type="checkbox" name="motif_1" value="value" id="motif_1"> <font color="darkgreen">1<sup>st</sup></font>
           <input type="checkbox" name="motif_2" value="value" id="motif_2"> <font color="darkgreen">2<sup>nd</sup> Shell</font>
 
-          <br><input type="checkbox" name="submotifs" value="value" onchange="check_change('submotifs')" id="submotifs"> <font color="magenta">Sub-Motifs - </font>
+          <br><input type="checkbox" name="submotifs" value="value" onclick="check_change('submotifs')" id="submotifs"> <font color="magenta">Sub-Motifs - </font>
           <input type="checkbox" name="submotif_1" value="value" id="submotif_1"> <font color="magenta">1<sup>st</sup></font>
           <input type="checkbox" name="submotif_2" value="value" id="submotif_2"> <font color="magenta">2<sup>nd</sup></font>
           <input type="checkbox" name="submotif_3" value="value" id="submotif_3"> <font color="magenta">3<sup>rd</sup></font>
@@ -124,23 +121,26 @@
           <br><p><label>Species: </label><select name="specieslist" id="specieslist" >
                <option value = "Homo sapiens">Homo sapiens</option><option value = "Alphapapillomavirus 9">Alphapapillomavirus 9</option><option value = "Arenicola marina">Arenicola marina</option><option value = "Bacillus anthracis">Bacillus anthracis</option><option value = "Bos taurus">Bos taurus</option><option value = "Caenorhabditis elegans">Caenorhabditis elegans</option><option value = "Candida albicans">Candida albicans</option><option value = "Canis familiaris">Canis familiaris</option><option value = "Cavia porcellus">Cavia porcellus</option><option value = "Cercopithecus aethiops">Cercopithecus aethiops</option><option value = "Chlamydia trachomatis">Chlamydia trachomatis</option><option value = "Chlorocebus sabaeus">Chlorocebus sabaeus</option><option value = "Clostridium botulinum">Clostridium botulinum</option><option value = "Clostridium perfringens">Clostridium perfringens</option><option value = "Clostridium tetani">Clostridium tetani</option><option value = "Corynephage beta">Corynephage beta</option><option value = "Cowpox virus">Cowpox virus</option><option value = "Cricetulus griseus">Cricetulus griseus</option><option value = "Crithidia fasciculata">Crithidia fasciculata</option><option value = "Danio rerio">Danio rerio</option><option value = "Dengue virus">Dengue virus</option><option value = "Dictyostelium discoideum">Dictyostelium discoideum</option><option value = "Drosophila melanogaster">Drosophila melanogaster</option><option value = "Escherichia coli">Escherichia coli</option><option value = "Felis catus">Felis catus</option><option value = "Gallus gallus">Gallus gallus</option><option value = "Hepatitis B virus">Hepatitis B virus</option><option value = "Hepatitis C Virus">Hepatitis C Virus</option><option value = "Hepatitis C virus genotype 2a">Hepatitis C virus genotype 2a</option><option value = "Hepatitis C virus subtype 1a">Hepatitis C virus subtype 1a</option><option value = "Homarus americanus">Homarus americanus</option><option value = "Human alphaherpesvirus 2">Human alphaherpesvirus 2</option><option value = "Human cytomegalovirus">Human cytomegalovirus</option><option value = "Human gammaherpesvirus 4">Human gammaherpesvirus 4</option><option value = "Human herpesvirus 1">Human herpesvirus 1</option><option value = "Human herpesvirus 8">Human herpesvirus 8</option><option value = "Human immunodeficiency virus 1">Human immunodeficiency virus 1</option><option value = "Human papillomavirus type 16">Human papillomavirus type 16</option><option value = "Infectious bronchitis virus">Infectious bronchitis virus</option><option value = "Influenza A virus">Influenza A virus</option><option value = "Legionella pneumophila">Legionella pneumophila</option><option value = "Listeria monocytogenes">Listeria monocytogenes</option><option value = "Listeria monocytogenes serotype 1/2a">Listeria monocytogenes serotype 1/2a</option><option value = "Listeria monocytogenes serovar 1/2a">Listeria monocytogenes serovar 1/2a</option><option value = "Macaca mulatta">Macaca mulatta</option><option value = "Measles virus">Measles virus</option><option value = "Meleagris gallopavo">Meleagris gallopavo</option><option value = "Molluscum contagiosum virus">Molluscum contagiosum virus</option><option value = "Molluscum contagiosum virus subtype 1">Molluscum contagiosum virus subtype 1</option><option value = "Mus musculus">Mus musculus</option><option value = "Mycobacterium tuberculosis">Mycobacterium tuberculosis</option><option value = "Mycobacterium tuberculosis H37Rv">Mycobacterium tuberculosis H37Rv</option><option value = "Neisseria gonorrhoeae">Neisseria gonorrhoeae</option><option value = "Neisseria meningitidis">Neisseria meningitidis</option><option value = "Neisseria meningitidis serogroup B">Neisseria meningitidis serogroup B</option><option value = "Oryctolagus cuniculus">Oryctolagus cuniculus</option><option value = "Ovis aries">Ovis aries</option><option value = "Penicillium chrysogenum">Penicillium chrysogenum</option><option value = "Plasmodium falciparum">Plasmodium falciparum</option><option value = "Rattus norvegicus">Rattus norvegicus</option><option value = "Respiratory syncytial virus">Respiratory syncytial virus</option><option value = "Rotavirus">Rotavirus</option><option value = "Rotavirus A">Rotavirus A</option><option value = "Saccharomyces cerevisiae">Saccharomyces cerevisiae</option><option value = "Salmonella enterica">Salmonella enterica</option><option value = "Salmonella typhimurium">Salmonella typhimurium</option><option value = "Schizosaccharomyces pombe">Schizosaccharomyces pombe</option><option value = "Sendai virus">Sendai virus</option><option value = "Sindbis virus">Sindbis virus</option><option value = "Staphylococcus aureus">Staphylococcus aureus</option><option value = "Sus scrofa">Sus scrofa</option><option value = "Tick-borne encephalitis virus">Tick-borne encephalitis virus</option><option value = "Toxoplasma gondii">Toxoplasma gondii</option><option value = "Triticum aestivum">Triticum aestivum</option><option value = "Vaccinia virus">Vaccinia virus</option><option value = "Vigna radiata">Vigna radiata</option><option value = "Vigna radiata var. radiata">Vigna radiata var. radiata</option><option value = "West Nile virus">West Nile virus</option><option value = "Xenopus laevis">Xenopus laevis</option><option value = "Xenopus tropicalis">Xenopus tropicalis</option>
              </select>
-          </p>
-        Number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="3" size="5">&nbsp;
-        <br><br><br><br>
-        </div>
+        </p>Number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="3" size="5">&nbsp;
+        <br><br><center><button id="search_button" style="width: 50%; height: 15px" onclick="query_database()">Search for Pathways</button></center><br><br>
+        </div></form>
             
-        <div id="redo" class="topclass" style="width: 200px; height: 240px">
-            <strong>STEP3</strong>: Search Pathways<br>
-            <br><br><br><br><br><br><center><button id="search_button" onclick="query_database()">Submit</button></center></form>
-        </div>
 
             
-        
-        
-            
-        
+        <div id="select_pathways" class="topclass" style="width: 15%; height: 600px; overflow-x: scroll;overflow-y: hidden; white-space: nowrap;">
+          <strong>STEP3</strong>: Pathway Selection<br><br>
+          <center><button id="clear_pathwaylist" style="width: 50%;" onclick="clear_pathwaylist()">Clear List</button></center>
+          <ol id="pathway_list" style="list-style-type:none; padding-left: 5px;"></ol>
+        </div>
+
+        <div id="cy" class="topclass" style="width: 81.5%; height: 600px">
+          <strong>STEP4</strong>: Pathway Visualization<br>
+          <script>setup_cy("cy");</script>
+        </div>
 
         
+
+
         
         <div id="reporting" class="topclass" style="width: 730px; Padding: 10px; float: left;">
             <strong>STEP4</strong>: Save metabolic pathway results<br>
@@ -150,20 +150,12 @@
         <p><button id="save" onclick = "save()">save plot files</button></p>
         <p><button id="save2" onclick="save_vector()">save plot files in vector format</button></p>
         <canvas id="canvas" style="display: none"></canvas>
-        </div>
+        </div></div>
         
         
         <div id="table_region" style="clear: both"> </div>
         
         <div style="clear: both"></div>   
-        
-        <div id="peak_info" style="width:inherit; text-align: center;"></div>
-        
-        
-
-
-
-	</div>
         
         <div id="id_info" style="width:inherit; text-align: center;"></div>
         
@@ -172,7 +164,7 @@
         <a href="javascript:void(0);" onclick="window.open('http://spin.ccic.osu.edu/database/hsqc_compound_list.pdf')">List of compounds in our database</a>
         </p>
 
-        
+
         <div class="reference">
                     <p><img src="http://spin.ccic.osu.edu//img/reference.png" width="30" >
         Reference</p>     
@@ -213,7 +205,7 @@
 
 
     </div>
-	
+
 </div>
 </body>
 </html>
