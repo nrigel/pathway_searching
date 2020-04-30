@@ -3,9 +3,11 @@ var session_id;
 
 var pathway_metabolites = new Set(); // pathway doc ids to list of metabolites
 var pathway_data = {}; // pathway checkbox ids to nodes and edges
-var metabolites_to_pathways = {}; // metabolite names to list of pathway ids
+var metabolites_to_pathways = {'Metabolites': {}, 'Motifs': {}, 'Sub-Motifs': {}}; // metabolite names to list of pathway ids
 var pathway_checkboxes = {}; // doc ids for userfile to pathway checkbox ids
 var pathwayid_pathwayname = {}; // all pathway ids to the displayname
+var pathway_lists = {} // pathway list id to child nodes
+
 var cy_layout = "cose"; // layout option for cytoscape graphing
 var node_labels = "displayName"; // node attribute that is displayed on cytoscape graph
 var edge_labels = null;//"reaction"; // edge labels from Reactome
@@ -47,27 +49,10 @@ function check_change(flag) {
     // pathway list check boxes
     if (flag.slice(0, 2) === "pl") {
         var checked = document.getElementById(flag).checked;
-        if (flag in pathway_checkboxes) {
-            var plist = pathway_checkboxes[flag];
-            for (i = 0; i < plist.length; i++) { 
-                if (checked) {
-                    if (document.getElementById(plist[i]).checked === false) {
-                        document.getElementById(plist[i]).checked = true;
-                        check_change(plist[i]);
-                    }
-                } else {
-                    if (document.getElementById(plist[i]).checked) {
-                        document.getElementById(plist[i]).checked = false;
-                        check_change(plist[i]);
-                    }
-                }
-            }
+        if (checked) {
+            visualize(flag, pathway_data[flag].nodes, pathway_data[flag].edges);
         } else {
-            if (checked) {
-                visualize(flag, pathway_data[flag].nodes, pathway_data[flag].edges);
-            } else {
-                de_visualize(flag);
-            }            
+            de_visualize(flag);      
         }
     }
     // change color of pathways to indicate metabolite hit
@@ -80,8 +65,12 @@ function check_change(flag) {
             }
         }
 
+        for (let node of cy.elements('node')) {
+            node.json({ selected: false });
+        }
+
         for (let pathway in pathway_data) {
-            if (pathway == null) {continue;}
+            if (pathway == null) { continue; }
             document.getElementById(pathway.concat("_label")).style.color = "black";
         }        
 
@@ -113,83 +102,86 @@ function query_database(flag){
         
         oReq.onload = function(oEvent) {
             if (oReq.status === 200) {
-                //console.log(oReq.response);
+                console.log(oReq.response);
                 var result = JSON.parse(oReq.response);
                 var pathway_ids = set_pathwaylist(userfile, result.pathway_list);
-                
-                for (i = 0; i < result.pathway_list.length; i++) { 
-                    if (pathway_ids[i] === null) {
-                        continue;
-                    }
-                    pathwayid_pathwayname[pathway_ids[i]] = result.pathway_list[i];
-                    pathway_data[pathway_ids[i]] = result.pathway_data[result.pathway_list[i]];
-                    var nodes = pathway_data[pathway_ids[i]].nodes;
-                    var edges = pathway_data[pathway_ids[i]].edges;
 
-                    // calculate fold change color scale
-                    let fold_changes = [];
-                    for (j = 0; j < nodes.length; j++) { 
-                        if (nodes[j].data['Fold Change']) {
-                            fold_changes.push(nodes[j].data['Fold Change']);
+                for (let m of ['Metabolites', 'Motifs', 'Sub-Motifs']) {
+
+                    for (i = 0; i < result.pathway_list[m].length; i++) { 
+                        if (pathway_ids[m][i] === null) {
+                            continue;
                         }
-                    }
-                    let fc_min = Math.min.apply(Math, fold_changes);
-                    let fc_max = Math.max.apply(Math, fold_changes);
+                        pathwayid_pathwayname[pathway_ids[m][i]] = result.pathway_list[m][i];
+                        pathway_data[pathway_ids[m][i]] = result.pathway_data[m][result.pathway_list[m][i]];
+                        var nodes = pathway_data[pathway_ids[m][i]].nodes;
+                        var edges = pathway_data[pathway_ids[m][i]].edges;
 
-                    if (fc_min !== fc_max) {
-                        var fc_range = fc_max-fc_min;
-                    } else {
-                        var fc_range = fc_min;
-                    }
-
-                    var colors = ['#E50002', '#E02C00', '#DC5900', '#D88500', '#D4AF00', '#C8CF00', '#99CB00', '#6CC700', '#41C300', '#18BF00', '#0074BF'];
-                    
-                    for (j = 0; j < nodes.length; j++) {
-                        // add metabolite to metabolite pathway dict
-                        if (metabolites_to_pathways[nodes[j].data["displayName"]] == null){
-                            metabolites_to_pathways[nodes[j].data["displayName"]] = [];
-                        }
-                        metabolites_to_pathways[nodes[j].data["displayName"]].push(pathway_ids[i]);
-                        // add tag to node id so that we can keep searches separate
-                        nodes[j].data["js_pathway_id"] = pathway_ids[i];
-                        // add metabolite name to our selection list
-                        pathway_metabolites.add(nodes[j].data["displayName"]);   
-                        // add specific pathway id into node ids
-                        var node_id = nodes[j].data["id"].toString();
-                        nodes[j].data["id"] = node_id.concat('_').concat(pathway_ids[i]);
-                        nodes[j].data["parent"] = pathway_ids[i];
-                        nodes[j].data["class"] = "Metabolite";
-                        if (nodes[j].data['Fold Change']) {
-                            var fc = (nodes[j].data['Fold Change']-fc_min)/fc_range;
-                            var color = null;
-                            var diff = null;
-                            for (k = 0; k < 10; k++) {
-                                if (Math.abs(k-fc*10) < diff || diff === null) {
-                                    diff = Math.abs(k-fc*10);
-                                    color = colors[k];
-                                } 
+                        // calculate fold change color scale
+                        let fold_changes = [];
+                        for (j = 0; j < nodes.length; j++) { 
+                            if (nodes[j].data['Fold Change']) {
+                                fold_changes.push(nodes[j].data['Fold Change']);
                             }
-                            var size = 30*(nodes[j].data['P-Value']);
-                        } else {
-                            color = colors[10];
-                            size = 30;
                         }
-                        nodes[j].data['color'] = color;
-                        nodes[j].data['size'] = size;
-                        // add shape detail based on if in COLMAR
-                        if (nodes[j].data["COLMAR"].length > 0) {
-                            nodes[j].data['shape'] = "ellipse";
+                        let fc_min = Math.min.apply(Math, fold_changes);
+                        let fc_max = Math.max.apply(Math, fold_changes);
+
+                        if (fc_min !== fc_max) {
+                            var fc_range = fc_max-fc_min;
                         } else {
-                            nodes[j].data['shape'] = "square";
+                            var fc_range = fc_min;
                         }
-                    }
-                    for (j = 0; j < edges.length; j++) {
-                        edges[j].data["js_pathway_id"] = pathway_ids[i];
-                        // add specific pathway id into node ids
-                        var source_id = edges[j].data['source'].toString();
-                        var target_id = edges[j].data['target'].toString();
-                        edges[j].data['source'] = source_id.concat('_').concat(pathway_ids[i]);
-                        edges[j].data['target'] = target_id.concat('_').concat(pathway_ids[i]);
+
+                        var colors = ['#E50002', '#E02C00', '#DC5900', '#D88500', '#D4AF00', '#C8CF00', '#99CB00', '#6CC700', '#41C300', '#18BF00', '#0074BF'];
+                        
+                        for (j = 0; j < nodes.length; j++) {
+                            // add metabolite to metabolite pathway dict
+                            if (metabolites_to_pathways[nodes[j].data["displayName"]] == null){
+                                metabolites_to_pathways[nodes[j].data["displayName"]] = [];
+                            }
+                            metabolites_to_pathways[nodes[j].data["displayName"]].push(pathway_ids[m][i]);
+                            // add tag to node id so that we can keep searches separate
+                            nodes[j].data["js_pathway_id"] = pathway_ids[m][i];
+                            // add metabolite name to our selection list
+                            pathway_metabolites.add(nodes[j].data["displayName"]);   
+                            // add specific pathway id into node ids
+                            var node_id = nodes[j].data["id"].toString();
+                            nodes[j].data["id"] = node_id.concat('_').concat(pathway_ids[m][i]);
+                            nodes[j].data["parent"] = pathway_ids[m][i];
+                            nodes[j].data["class"] = "Metabolite";
+                            if (nodes[j].data['Fold Change']) {
+                                var fc = (nodes[j].data['Fold Change']-fc_min)/fc_range;
+                                var color = null;
+                                var diff = null;
+                                for (k = 0; k < 10; k++) {
+                                    if (Math.abs(k-fc*10) < diff || diff === null) {
+                                        diff = Math.abs(k-fc*10);
+                                        color = colors[k];
+                                    } 
+                                }
+                                var size = 30*(nodes[j].data['P-Value']);
+                            } else {
+                                color = colors[10];
+                                size = 30;
+                            }
+                            nodes[j].data['color'] = color;
+                            nodes[j].data['size'] = size;
+                            // add shape detail based on if in COLMAR
+                            if (nodes[j].data["COLMAR"].length > 0) {
+                                nodes[j].data['shape'] = "ellipse";
+                            } else {
+                                nodes[j].data['shape'] = "square";
+                            }
+                        }
+                        for (j = 0; j < edges.length; j++) {
+                            edges[j].data["js_pathway_id"] = pathway_ids[m][i];
+                            // add specific pathway id into node ids
+                            var source_id = edges[j].data['source'].toString();
+                            var target_id = edges[j].data['target'].toString();
+                            edges[j].data['source'] = source_id.concat('_').concat(pathway_ids[m][i]);
+                            edges[j].data['target'] = target_id.concat('_').concat(pathway_ids[m][i]);
+                        }
                     }
                 }
 
@@ -213,54 +205,77 @@ function query_database(flag){
         oReq.send(params);
     } else {
         window.alert("No file selected...")
-   }
-    
+   } 
 }
 
 function set_pathwaylist(userfile, pathway_list) {
     var ul = document.getElementById("pathway_list");
+
     var filename = userfile.split(/(\\|\/)/g).pop();
     if (document.getElementById("pl_".concat(filename)) == null) {
-        var l = document.createElement("ol");
-        l.setAttribute("id", "pl_".concat(filename));
-        l.setAttribute("style", "list-style-type:none; padding-left: 15px;");
-
-        var id = "plbox_".concat(filename)
-        pathway_checkboxes[id] = [];
-        var x = document.createElement("input");
-        x.setAttribute("type", "checkbox");
-        x.setAttribute("id", id);
-        x.setAttribute("onclick", "check_change('".concat(id).concat("')"));
-        var label = document.createElement("label");
-        label.setAttribute("id", id.concat("_label"));
-        label.htmlFor = id;
+        var id = "pl_".concat(filename)
+        pathway_checkboxes[id] = {'Metabolites': [], 'Motifs': [], 'Sub-Motifs': []};
+        
+        let label = document.createElement("label");
+        label.setAttribute("id", id);
         label.appendChild(document.createTextNode(filename));
-        ul.appendChild(x);
+        label.style = "font-weight:bold"
         ul.appendChild(label);
-        ul.appendChild(l);
+        ul.appendChild(document.createElement("br"));
+
+        let font_colors = {"Metabolites": "blue", "Motifs": "darkgreen", "Sub-Motifs": "red"}
+
+        for (let m of ['Metabolites', 'Motifs', 'Sub-Motifs']) {
+            let m_id = "pl".concat(m).concat("_").concat(filename)
+
+            pathway_lists[m_id] = {}; // make dict entry for saving pathways
+
+            let label = document.createElement("label");
+            label.appendChild(document.createTextNode(m));
+            label.setAttribute("style", "padding-left: 15px; color: ".concat(font_colors[m]).concat(";"));
+            ul.appendChild(label);
+            
+            let m_div = document.createElement("div");
+            m_div.setAttribute("id", m_id.concat("_div"));
+            m_div.setAttribute("style", "padding-left: 25px;");
+            ul.appendChild(m_div);
+            ul.appendChild(document.createElement("br"));
+        }
     } 
     
-    var pathway_ids = {};
-    var l = document.getElementById("pl_".concat(filename));
+    var pathway_ids = {'Metabolites': {}, 'Motifs': {}, 'Sub-Motifs': {}};
+    var l = document.getElementById("plMetabolites_".concat(filename).concat("_div"));
     var i;
-    for (i = 0; i < pathway_list.length; i++) { 
-        var id = "plbox_".concat(filename).concat("_").concat(pathway_list[i])
-        if (document.getElementById(id) == null) {
-            var x = document.createElement("input");
-            x.setAttribute("type", "checkbox");
-            x.setAttribute("id", id);
-            x.setAttribute("onclick", "check_change('".concat(id).concat("')"));
-            var label = document.createElement("label");
-            label.htmlFor = id;
-            label.setAttribute("id", id.concat("_label"));
-            label.appendChild(document.createTextNode(pathway_list[i]));
-            l.appendChild(x);
-            l.appendChild(label);
-            l.appendChild(document.createElement("br"));
-            pathway_ids[i] = id;
-            pathway_checkboxes["plbox_".concat(filename)].push(id);
-        } else {
-            pathway_ids[i] = null;
+    
+    for (let m of ['Metabolites', 'Motifs', 'Sub-Motifs']) {
+
+
+        for (i = 0; i < pathway_list[m].length; i++) { 
+            let m_id = "pl".concat(m).concat("_").concat(filename)
+            if (!(pathway_list[m][i] in pathway_lists[m_id])) {
+                let pid = "pl".concat(m).concat("_").concat(filename).concat("_").concat(pathway_list[m][i])
+                
+                var x = document.createElement("input");
+                x.setAttribute("type", "checkbox");
+                x.setAttribute("id", pid);
+                x.setAttribute("onclick", "check_change('".concat(pid).concat("')"));
+                
+                var label = document.createElement("label");
+                label.htmlFor = pid;
+                label.setAttribute("id", pid.concat("_label"));
+                label.appendChild(document.createTextNode(pathway_list[m][i]));
+
+                pathway_lists[m_id][pid] = [x, label];
+
+                //l.appendChild(x);
+                //l.appendChild(label);
+                //l.appendChild(document.createElement("br"));
+                
+                pathway_ids[m][i] = pid;
+                pathway_checkboxes["pl_".concat(filename)][m].push(pid);
+            } else {
+                pathway_ids[m][i] = null;
+            }
         }
     }
     return pathway_ids
@@ -296,24 +311,22 @@ function setup_cy(container_id) {
                                 'text-valign': 'top',
                                 'text-halign': 'center',
                                 "text-max-width": 1000,
-                                'background-opacity': 0.2,
+                                'background-opacity': 0.1,
                                 'background-color': '#FF00FF'
                         }
                     },
 
                     {selector: ':selected',
-                        style: {'background-color': 'yellow', 'line-color': 'yellow', 
-                        'target-arrow-color': 'black', 'source-arrow-color': 'black',}},
+                        style: {'background-color': 'yellow', 
+                                'line-color': 'yellow', 
+                                'target-arrow-color': 'black', 
+                                'source-arrow-color': 'black',}},
                     
                     {selector: 'edge',
                         style: {'label': function(ele) {
                             if (edge_labels) {
                                 return 'data('.concat(edge_labels).concat(')')
-                            } else {
-                                return ''
-                            }
-                        },
-                        
+                            } else { return '' }},
                             'curve-style': 'bezier',
                             'target-arrow-shape': 'triangle',
                             'font-size': '18px'}}
@@ -321,11 +334,58 @@ function setup_cy(container_id) {
                 elements: {nodes: [], edges: []}, 
                 layout: {name: cy_layout,
                         nodeDimensionsIncludeLabels: true}});
+
+    cy.on('tapend', function() {
+        for (let ele of cy.$(':selected')) {            
+            if (ele.data()['type'] != 'Pathway') {
+                ele.qtip({
+                    content: function(){ 
+                        if (ele.isNode()) {
+                            if (ele.data()['type'] == 'Metabolite') {
+                                let svg = ele.data()['SVG']; //.split('\n'); // most molecules have SVG stored
+                                var stats = ele.data()[node_labels].concat('<br/>').concat(svg);                 
+                                for (let key of ['Fold Change', 'P-Value', 'databaseName', 'name', 'displayName', 'CHEBI', 'COLMAR', 'HMDB', 'SMILES_2D', 'SMILES_3D', 'formula', 'labels', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4', 'spinsystems', 'nodes', 'url']) {
+                                    if (ele.data()[key]) {       
+                                        if (key == 'url') {
+                                            var value = key.concat(': <a href="').concat(ele.data()[key]).concat('" target="_blank">').concat(ele.data()[key]).concat('</a>')
+                                        } else {
+                                            var value = key.concat(': ').concat(ele.data()[key].toString())
+                                        }
+                                    } else {
+                                        var value = key.concat(': ')
+                                    }
+                                    var stats = stats.concat('<br/><br/>').concat(value)
+                                }
+                                return stats;
+
+                            } else { return ''; }
+                        } else if (ele.isEdge()) {
+                            return ele.data()['reaction']
+                        }   
+                    },
+                    position: {
+                        my: 'top center',
+                        at: 'bottom center'
+                    },
+                    style: {
+                        classes: 'qtip-bootstrap',
+                        tip: {
+                            width: 8,
+                            height: 8
+                        },
+                        'max-width': '200px',
+                        'max-height': '275px',
+                    }
+                });
+            }          
+        }
+    })
 }
+
 
 function visualize(pathway, nodes, edges) {
     // this will overlap the nodes if the same node label already exists...
-    cy.add([{'data': {'id': pathway, 'displayName': '', 'pathwayName': pathwayid_pathwayname[pathway], 'type': 'Pathway', 'size': 0, 'color': 'red', 'shape': 'ellipse', 'js_pathway_id': pathway}}]);
+    cy.add([{'data': {'id': pathway, 'displayName': '', 'pathwayName': pathwayid_pathwayname[pathway], 'type': 'Pathway', 'size': 0, 'color': 'red', 'shape': 'ellipse', 'js_pathway_id': pathway}, 'selectable': false}]);
     cy.add(nodes);
     cy.add(edges);
 
@@ -430,9 +490,45 @@ function visualize(pathway, nodes, edges) {
 
     var layout = cy.layout(options);
     layout.run();
+    check_change("metabolite_filter"); // check for metabolite selections
 }
 
 function de_visualize(pathway) {
     cy.remove(cy.elements('node[js_pathway_id = "'.concat(pathway).concat('"]')));
     cy.remove(cy.elements('edge[js_pathway_id = "'.concat(pathway).concat('"]')));
+}
+
+function saveResults(flag) {
+    // save results using options from save box
+    if (flag == 'SVG') {
+        var textToWrite = cy.svg({scale: 1, full: false});
+        var textFileAsBlob = new Blob([textToWrite], { type: 'image/svg+xml;charset=utf-8' });
+        var fileNameToSaveAs = document.getElementById("svg_name").value;
+    } else if (flag == 'PNG') {
+        var textToWrite = cy.png({'output': 'blob', scale: 1, full: false});
+        var textFileAsBlob = new Blob([textToWrite], { type: 'image/png' });
+        var fileNameToSaveAs = document.getElementById("png_name").value;
+    } else if (flag == 'CSV') {
+        var textToWrite = '';
+        var textFileAsBlob = new Blob([textToWrite], { type: 'text/csv' });
+        var fileNameToSaveAs = document.getElementById("csv_name").value;
+    }
+
+    var downloadLink = document.createElement("a");
+    downloadLink.download = fileNameToSaveAs;
+    downloadLink.innerHTML = "Download File";
+    if (window.URL != null) {
+        // Chrome allows the link to be clicked
+        // without actually adding it to the DOM.
+        downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+    } else {
+        // Firefox requires the link to be added to the DOM
+        // before it can be clicked.
+        downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+        downloadLink.onclick = destroyClickedElement;
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+    }
+
+    downloadLink.click();
 }

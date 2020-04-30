@@ -5,13 +5,18 @@
     <meta http-equiv="Expires" content="Tue, 01 Jan 1995 12:12:12 GMT">
     <meta http-equiv="Pragma" content="no-cache">
     
-    
-<link rel="stylesheet" type="text/css" href="http://spin.ccic.osu.edu//mystyles2.css">
+    <link rel="stylesheet" type="text/css" href="http://spin.ccic.osu.edu//mystyles2.css">
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
     <script type="text/javascript" src="Scripts/pathway_search.js" ></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.14.1/cytoscape.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet"/>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.0/jquery.qtip.css">
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.0/jquery.qtip.js"></script>
+    <script type="text/javascript" src="Scripts/cytoscape-qtip.js"></script>
+    <script src="Scripts/cytoscape-svg.js"></script>
 
     <title>COLMAR-Pathways</title>
     
@@ -48,7 +53,7 @@
       100% { transform: rotate(360deg); }
     }
 
-    // control displayed tags {}
+    /* control displayed tags */
     .select2-selection__choice {
       max-width: 100%;
       max-height: 100%;
@@ -56,7 +61,7 @@
       text-overflow: ellipsis;
     }
 
-    // control dropdown box {}
+    /* control dropdown box */
     .select2-results {
       max-height: 200px;
       overflow: hidden;
@@ -64,12 +69,25 @@
       text-overflow: ellipsis;
     }    
 
-    // controls result box overflow {}
+    /* controls result box overflow */
     .select2-selection {
       max-height: 100px;
       overflow: scroll;
       overflow-y: scroll;
     } 
+
+    /* controls the format of text inside graph popups, needs to match js style also */
+    .qtip-content {
+      position: relative;
+      overflow: hidden;
+      overflow-x: scroll;
+      overflow-y: scroll;
+      text-align: left;   /*  default: left  */
+      word-wrap: normal;
+      word-break: keep-all;
+      max-height: 200px;
+      max-width: 275px;
+    }
 
 </style>
     
@@ -136,6 +154,7 @@
             
         <h2>COLMAR-Pathways</h2>
         
+        <!-- loading wheel script -->
         <script> 
           function hide_loader() {
             document.getElementById("loader").style.display = "none";
@@ -163,22 +182,23 @@
           <input type="checkbox" name="motif_1" value="value" id="motif_1"> <font color="darkgreen">1<sup>st</sup></font>
           <input type="checkbox" name="motif_2" value="value" id="motif_2"> <font color="darkgreen">2<sup>nd</sup> Shell</font>
 
-          <br><input type="checkbox" name="submotifs" value="value" onclick="check_change('submotifs')" id="submotifs"> <font color="magenta">Sub-Motifs - </font>
-          <input type="checkbox" name="submotif_1" value="value" id="submotif_1"> <font color="magenta">1<sup>st</sup></font>
-          <input type="checkbox" name="submotif_2" value="value" id="submotif_2"> <font color="magenta">2<sup>nd</sup></font>
-          <input type="checkbox" name="submotif_3" value="value" id="submotif_3"> <font color="magenta">3<sup>rd</sup></font>
-          <input type="checkbox" name="submotif_4" value="value" id="submotif_4"> <font color="magenta">4<sup>th</sup> Shell</font>
+          <br><input type="checkbox" name="submotifs" value="value" onclick="check_change('submotifs')" id="submotifs"> <font color="red">Sub-Motifs - </font>
+          <input type="checkbox" name="submotif_1" value="value" id="submotif_1"> <font color="red">1<sup>st</sup></font>
+          <input type="checkbox" name="submotif_2" value="value" id="submotif_2"> <font color="red">2<sup>nd</sup></font>
+          <input type="checkbox" name="submotif_3" value="value" id="submotif_3"> <font color="red">3<sup>rd</sup></font>
+          <input type="checkbox" name="submotif_4" value="value" id="submotif_4"> <font color="red">4<sup>th</sup> Shell</font>
 
           <br>Note: Lower shell (sub-)motifs can cause ambiguous results.
           <br><p><label>Species: </label><select name="specieslist" id="specieslist" >
                <option value = "Homo sapiens">Homo sapiens</option><option value = "Alphapapillomavirus 9">Alphapapillomavirus 9</option><option value = "Arenicola marina">Arenicola marina</option><option value = "Bacillus anthracis">Bacillus anthracis</option><option value = "Bos taurus">Bos taurus</option><option value = "Caenorhabditis elegans">Caenorhabditis elegans</option><option value = "Candida albicans">Candida albicans</option><option value = "Canis familiaris">Canis familiaris</option><option value = "Cavia porcellus">Cavia porcellus</option><option value = "Cercopithecus aethiops">Cercopithecus aethiops</option><option value = "Chlamydia trachomatis">Chlamydia trachomatis</option><option value = "Chlorocebus sabaeus">Chlorocebus sabaeus</option><option value = "Clostridium botulinum">Clostridium botulinum</option><option value = "Clostridium perfringens">Clostridium perfringens</option><option value = "Clostridium tetani">Clostridium tetani</option><option value = "Corynephage beta">Corynephage beta</option><option value = "Cowpox virus">Cowpox virus</option><option value = "Cricetulus griseus">Cricetulus griseus</option><option value = "Crithidia fasciculata">Crithidia fasciculata</option><option value = "Danio rerio">Danio rerio</option><option value = "Dengue virus">Dengue virus</option><option value = "Dictyostelium discoideum">Dictyostelium discoideum</option><option value = "Drosophila melanogaster">Drosophila melanogaster</option><option value = "Escherichia coli">Escherichia coli</option><option value = "Felis catus">Felis catus</option><option value = "Gallus gallus">Gallus gallus</option><option value = "Hepatitis B virus">Hepatitis B virus</option><option value = "Hepatitis C Virus">Hepatitis C Virus</option><option value = "Hepatitis C virus genotype 2a">Hepatitis C virus genotype 2a</option><option value = "Hepatitis C virus subtype 1a">Hepatitis C virus subtype 1a</option><option value = "Homarus americanus">Homarus americanus</option><option value = "Human alphaherpesvirus 2">Human alphaherpesvirus 2</option><option value = "Human cytomegalovirus">Human cytomegalovirus</option><option value = "Human gammaherpesvirus 4">Human gammaherpesvirus 4</option><option value = "Human herpesvirus 1">Human herpesvirus 1</option><option value = "Human herpesvirus 8">Human herpesvirus 8</option><option value = "Human immunodeficiency virus 1">Human immunodeficiency virus 1</option><option value = "Human papillomavirus type 16">Human papillomavirus type 16</option><option value = "Infectious bronchitis virus">Infectious bronchitis virus</option><option value = "Influenza A virus">Influenza A virus</option><option value = "Legionella pneumophila">Legionella pneumophila</option><option value = "Listeria monocytogenes">Listeria monocytogenes</option><option value = "Listeria monocytogenes serotype 1/2a">Listeria monocytogenes serotype 1/2a</option><option value = "Listeria monocytogenes serovar 1/2a">Listeria monocytogenes serovar 1/2a</option><option value = "Macaca mulatta">Macaca mulatta</option><option value = "Measles virus">Measles virus</option><option value = "Meleagris gallopavo">Meleagris gallopavo</option><option value = "Molluscum contagiosum virus">Molluscum contagiosum virus</option><option value = "Molluscum contagiosum virus subtype 1">Molluscum contagiosum virus subtype 1</option><option value = "Mus musculus">Mus musculus</option><option value = "Mycobacterium tuberculosis">Mycobacterium tuberculosis</option><option value = "Mycobacterium tuberculosis H37Rv">Mycobacterium tuberculosis H37Rv</option><option value = "Neisseria gonorrhoeae">Neisseria gonorrhoeae</option><option value = "Neisseria meningitidis">Neisseria meningitidis</option><option value = "Neisseria meningitidis serogroup B">Neisseria meningitidis serogroup B</option><option value = "Oryctolagus cuniculus">Oryctolagus cuniculus</option><option value = "Ovis aries">Ovis aries</option><option value = "Penicillium chrysogenum">Penicillium chrysogenum</option><option value = "Plasmodium falciparum">Plasmodium falciparum</option><option value = "Rattus norvegicus">Rattus norvegicus</option><option value = "Respiratory syncytial virus">Respiratory syncytial virus</option><option value = "Rotavirus">Rotavirus</option><option value = "Rotavirus A">Rotavirus A</option><option value = "Saccharomyces cerevisiae">Saccharomyces cerevisiae</option><option value = "Salmonella enterica">Salmonella enterica</option><option value = "Salmonella typhimurium">Salmonella typhimurium</option><option value = "Schizosaccharomyces pombe">Schizosaccharomyces pombe</option><option value = "Sendai virus">Sendai virus</option><option value = "Sindbis virus">Sindbis virus</option><option value = "Staphylococcus aureus">Staphylococcus aureus</option><option value = "Sus scrofa">Sus scrofa</option><option value = "Tick-borne encephalitis virus">Tick-borne encephalitis virus</option><option value = "Toxoplasma gondii">Toxoplasma gondii</option><option value = "Triticum aestivum">Triticum aestivum</option><option value = "Vaccinia virus">Vaccinia virus</option><option value = "Vigna radiata">Vigna radiata</option><option value = "Vigna radiata var. radiata">Vigna radiata var. radiata</option><option value = "West Nile virus">West Nile virus</option><option value = "Xenopus laevis">Xenopus laevis</option><option value = "Xenopus tropicalis">Xenopus tropicalis</option>
              </select>
-        </p>Minimum number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="3" size="5">&nbsp;
+        </p>Minimum number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="4" size="5">&nbsp;
         <br><br><center><button id="search_button" style="width: 50%; height: 15px" onclick="query_database()">Search for Pathways</button></center><br><br>
         </div></form>
             
         <div id="select_pathways" class="topclass" style="width: 21%; height: 800px; overflow-x: scroll;overflow-y: scroll; white-space: nowrap;">
           <strong>STEP3</strong>: Pathway Selection<br><br>
+          <p style="display: none;">Placeholder</p>
           <center><select class="filter_metabolites" id="metabolite_filter" multiple="multiple" style="width: 85%; height: 6px;">
           <option value="metfilt_AllMetabolites">All Metabolites</option>
           </select></center>
@@ -203,7 +223,7 @@
         <div id="cy" class="topclass" style="width: 76%; height: 800px; overflow: hidden;">
           <strong>STEP4</strong>: Pathway Visualization<br>
           <script>setup_cy("cy");</script>
-          <img src="images/legend.png" class="ribbon" style="bottom: 1%; right: 0.5%; position: absolute; width: 25%;">
+          <img src="images/legend.png" class="ribbon" style="bottom: 1%; right: 0.5%; position: absolute; width: 30%;">
         </div>
 
         
@@ -212,11 +232,17 @@
         
         <div id="reporting" class="topclass" style="width: 48.5%; height: 240px; float: left;">
             <strong>STEP5</strong>: Save metabolic pathway results<br>
+            <!--
             Using <input type="radio" name="delimiter" value="space"> Space or <input type="radio" name="delimiter" value="comma" checked> Comma as delimiter.<br>
-        <p><button onclick = "peak_report()">save peak report as </button> <input id="peak_report_name" style="width: 120px" value="peak_report.txt"></p>
-        <p><button onclick = "compound_report()">save compound report as </button> <input id="compound_report_name" style="width: 120px" value="compound_report.txt"></p>
-        <p><button id="save" onclick = "save()">save plot files</button></p>
+            -->
+
+        <p><button onclick = "saveResults('CSV')">Save results as CSV</button> <input id="csv_name" style="width: 120px" value="pathway_results.csv"></p>   
+        <p><button id="savePNG" onclick = "saveResults('PNG')">Save plot as PNG</button> <input id="png_name" style="width: 120px" value="pathway_results.png"></p>
+        <p><button id="saveSVG" onclick = "saveResults('SVG')">Save plot as SVG</button> <input id="svg_name" style="width: 120px" value="pathway_results.svg"></p>
+        
+        <!--
         <p><button id="save2" onclick="save_vector()">save plot files in vector format</button></p>
+        -->
         <canvas id="canvas" style="display: none"></canvas>
         </div>
         

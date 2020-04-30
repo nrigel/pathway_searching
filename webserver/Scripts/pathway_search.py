@@ -3,18 +3,16 @@ import cgi, cgitb, sys, math, csv, json
 import networkx as nx
 sys.path.append('../../scripts')
 from neo4j_connect import NMRTServer, ReactomeServer
+NMRT, Reactome = NMRTServer(), ReactomeServer()
 
-# Create instance of FieldStorage 
-form = cgi.FieldStorage() 
-
-print("Content-type:text/html\r\n\r\n")
-
+# Step 1: Organize data from HTML form
+form = cgi.FieldStorage() # Create instance of FieldStorage 
+print("Content-type:text/html\r\n\r\n") # print HTML header
 # Get data from fields
 datafile = form['userfile'].file
 structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4'] if form.getvalue(o)]
 species = form.getvalue('specieslist')
 count_cutoff = form.getvalue('cutoff_count')
-
 # Read in data file
 lines = []
 while True:
@@ -24,25 +22,40 @@ while True:
     lines.extend([line])
 data_set = [line.rstrip().decode('utf-8').split(',') for line in lines]
 
-# Format metabolites dict
-names_to_colmarid = {}
-with open('/Users/nickrigel/Documents/GitHub/pathway_searching/updating_Reactome_molecules/name_to_colmarid.csv') as csvin:
-    csvin.readline()
-    for row in csv.reader(csvin):
-        names_to_colmarid[row[0]] = row[1]
-
+# Step 2: Match inputted metabolites to NMRT DB to get (sub-)motif info and COLMAR IDs (if needed)
 metabolites = {}
-for i in range(1, len(data_set)):
-    metabolite, p_value, fold_change = data_set[i][0], -math.log(float(data_set[i][1])), float(data_set[i][2])
-    if metabolite in names_to_colmarid:
-        colmar = names_to_colmarid[metabolite]
-    else:
-        colmar = metabolite    
-    metabolites[colmar] = {'COLMAR': colmar, 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': metabolite}
+with NMRT._driver.session() as db:
+    for i in range(1, len(data_set)):
+        metabolite, p_value, fold_change = data_set[i][0], -math.log(float(data_set[i][1])), float(data_set[i][2])
+        for match in db.run('MATCH (m:metabolites) WHERE m.COLMARm = "'+metabolite+'" OR m.COLMARm = "'+metabolite+'_1" OR m.COLMARm = "'+metabolite+'_2" OR m.Name = "'+metabolite+'" OR m.isoName = "'+metabolite+'" RETURN m.COLMARm').value():
+            metabolites[match] = {'metabolites': [match], 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': metabolite}
+            for opt in structure_opts:
+                if opt == 'metabolites':
+                    continue
+                metabolites[match][opt] = list(set(db.run('MATCH (m:metabolites)--(M:'+opt+') WHERE m.COLMARm = "'+match+'" RETURN M.SMILES').value()))
 
+# Step 3: Search for pathways that contain matching metabolites, motifs, and/or sub-motifs
+pathway_search = {}
+with Reactome._driver.session() as db:
+    for opt in structure_opts:
+        pathway_search[opt] = {}
+        for m in metabolites:
+            for s in metabolites[m][opt]:
+                if opt == 'metabolites':
+                    key = 'COLMAR'
+                else:
+                    key = opt
+                for (m, p) in db.run('MATCH (m:ReferenceMolecule)-[me:referenceEntity]-(e:PhysicalEntity)-[er:input]-(r:Reaction)-[rp:hasEvent]-(p:Pathway) WHERE "'+s+'" IN m.'+key+' AND p.speciesName = "'+species+'" RETURN ([m.dbId, p.dbId])').value():
+                    print(m, p)
+
+
+
+
+exit()
 # 1. Search for pathways with any of the inputted metabolites
-Reactome = ReactomeServer()
+
 pathways = [{}, [], [], []]
+pathway_search = {'Metabolites': {}, 'Motifs': {}, 'Sub-Motifs': {}}
 with Reactome._driver.session() as db:
     for metabolite in metabolites:
         pathways[0][metabolite] = set()
@@ -91,7 +104,7 @@ with Reactome._driver.session() as db:
             for node in reactions.nodes:
                 if 'Reaction' in list(node.labels): 
                     node_dict = dict(node)
-                    node_dict['labels'], node_dict['TYPE'] = list(node.labels), 'Reaction'
+                    node_dict['labels'], node_dict['type'] = list(node.labels), 'Reaction'
                     pathway_graphs[pathway].add_nodes_from([(node['dbId'], node_dict)])
 
                     command = 'MATCH (p:Pathway) WHERE p.displayName = "'+pathway+'" AND p.speciesName = "'+species+'"'
@@ -112,76 +125,75 @@ with Reactome._driver.session() as db:
                             n3 = entities_to_metabolites[n2['dbId']] # metabolite node
                             if n3['dbId'] not in pathway_graphs[pathway]: # add metabolite node to new graph
                                 node_dict = dict(n3)
-                                node_dict['labels'], node_dict['TYPE'] = list(n3.labels), 'Metabolite'
+                                node_dict['labels'], node_dict['type'] = list(n3.labels), 'Metabolite'
                                 pathway_graphs[pathway].add_nodes_from([(n3['dbId'], node_dict)])
                             if relationship.type == 'input': # input metabolites go towards reaction
-                                pathway_graphs[pathway].add_edge(n3['dbId'], n1['dbId'], relationship=relationship, TYPE='input')
+                                pathway_graphs[pathway].add_edge(n3['dbId'], n1['dbId'], relationship=relationship, type='input')
                             if relationship.type == 'output': # output metabolites go away from reaction
-                                pathway_graphs[pathway].add_edge(n1['dbId'], n3['dbId'], relationship=relationship, TYPE='output')
+                                pathway_graphs[pathway].add_edge(n1['dbId'], n3['dbId'], relationship=relationship, type='output')
 
             for relationship in reactions.relationships:
                 n2, n1 = relationship.start_node, relationship.end_node
                 # (n1)-[:PrecedingEvent]->(n2); start_node = reaction 2, end_node = reaction 1
-                pathway_graphs[pathway].add_edge(n1['dbId'], n2['dbId'], TYPE='precedingEvent', relationship=relationship)
+                pathway_graphs[pathway].add_edge(n1['dbId'], n2['dbId'], type='precedingEvent', relationship=relationship)
 
         # input metabolites go towards reaction
         # output metabolites go away from reaction
-        # TYPE is Reaction or Metabolite
+        # type is Reaction or Metabolite
 
         G = nx.DiGraph()
         for node in pathway_graphs[pathway].nodes:
-            if pathway_graphs[pathway].nodes[node]['TYPE'] == 'Metabolite':
+            if pathway_graphs[pathway].nodes[node]['type'] == 'Metabolite':
                 node_dict = pathway_graphs[pathway].nodes[node]
                 node_dict['id'] = node
                 for colmar in node_dict['COLMAR']:
                     if colmar in metabolites:
                         node_dict['Fold Change'], node_dict['P-Value'] = metabolites[colmar]['Fold Change'], metabolites[colmar]['P-Value']
                 G.add_nodes_from([(node, node_dict)])
-                #G.add_node(node, id=node, name=pathway_graphs[pathway].nodes[node]['displayName'], type=pathway_graphs[pathway].nodes[node]['TYPE'])
+                #G.add_node(node, id=node, name=pathway_graphs[pathway].nodes[node]['displayName'], type=pathway_graphs[pathway].nodes[node]['type'])
         
         for edge in pathway_graphs[pathway].edges:
-            reaction = [n for n in range(len(edge)) if pathway_graphs[pathway].nodes[edge[n]]['TYPE'] == 'Reaction']
+            reaction = [n for n in range(len(edge)) if pathway_graphs[pathway].nodes[edge[n]]['type'] == 'Reaction']
             if len(reaction) == 2:
                 # reaction 1 --> reaction 2
                 for m1 in pathway_graphs[pathway].in_edges(edge[0]):
-                    if pathway_graphs[pathway].nodes[m1[0]]['TYPE'] == 'Reaction':
+                    if pathway_graphs[pathway].nodes[m1[0]]['type'] == 'Reaction':
                         continue
                     for m2 in pathway_graphs[pathway].out_edges(edge[1]):
-                        if pathway_graphs[pathway].nodes[m2[1]]['TYPE'] == 'Reaction' or m1[0] == m2[1]:
+                        if pathway_graphs[pathway].nodes[m2[1]]['type'] == 'Reaction' or m1[0] == m2[1]:
                             continue
-                        #G.add_edge(m1[0], m2[1], type=pathway_graphs[pathway].edges[edge]['TYPE'], reaction='')
+                        #G.add_edge(m1[0], m2[1], type=pathway_graphs[pathway].edges[edge]['type'], reaction='')
 
             if len(reaction) == 1:
                 reaction = reaction[0]
-                metabolite = [n for n in range(len(edge)) if pathway_graphs[pathway].nodes[edge[n]]['TYPE'] == 'Metabolite'][0]
+                metabolite = [n for n in range(len(edge)) if pathway_graphs[pathway].nodes[edge[n]]['type'] == 'Metabolite'][0]
                 if reaction == 0:
                     # reaction --> metabolite; get all metabolites inputted into the reaction (in_edges)
                     for m in pathway_graphs[pathway].in_edges(edge[reaction]):
-                        if pathway_graphs[pathway].nodes[m[0]]['TYPE'] == 'Reaction' or m[0] == edge[metabolite]:
+                        if pathway_graphs[pathway].nodes[m[0]]['type'] == 'Reaction' or m[0] == edge[metabolite]:
                             continue
-                        G.add_edge(m[0], edge[metabolite], type=pathway_graphs[pathway].edges[edge]['TYPE'], reaction=pathway_graphs[pathway].nodes[edge[reaction]]['displayName'])
+                        G.add_edge(m[0], edge[metabolite], type=pathway_graphs[pathway].edges[edge]['type'], reaction=pathway_graphs[pathway].nodes[edge[reaction]]['displayName'])
                 if reaction == 1:
                     # metabolite --> reaction; get all metabolites outputted from the reaction (out_edges)
                     for m in pathway_graphs[pathway].out_edges(edge[reaction]):
-                        if pathway_graphs[pathway].nodes[m[1]]['TYPE'] == 'Reaction' or edge[metabolite] == m[1]:
+                        if pathway_graphs[pathway].nodes[m[1]]['type'] == 'Reaction' or edge[metabolite] == m[1]:
                             continue
-                        G.add_edge(edge[metabolite], m[1], type=pathway_graphs[pathway].edges[edge]['TYPE'], reaction=pathway_graphs[pathway].nodes[edge[reaction]]['displayName'])
+                        G.add_edge(edge[metabolite], m[1], type=pathway_graphs[pathway].edges[edge]['type'], reaction=pathway_graphs[pathway].nodes[edge[reaction]]['displayName'])
         
         nodes, edges = [{'data': G.nodes[node], 'group': 'nodes'} for node in G.nodes], [{'data': {'source': edge[0], 'target': edge[1], 'type': G.edges[edge]['type'], 'reaction': G.edges[edge]['reaction']}, 'group': 'edges'} for edge in G.edges]
         pathway_name = pathway+' ('+str(pathways[1].count(pathway))+')'
         pathway_names.extend([pathway_name])
         pathway_data[pathway_name] = {'nodes': nodes, 'edges': edges}
 
-print(json.dumps({'pathway_data': pathway_data, 'pathway_list': pathway_names}))
+# return results as a printed JSON string
+print(json.dumps({'pathway_data': {'Metabolites': pathway_data, 'Motifs': {}, 'Sub-Motifs': {}}, 'pathway_list': {'Metabolites': pathway_names, 'Motifs': [], 'Sub-Motifs': []}}))
 
 
+### TO DO List ###
 # Add in motif and sub-motif options
-# Work on saving session, results, SVG or PNG images etc.
+# try collapsible lists again - this time save list contents to var, then clear list when button is pressed
+# Work on saving session, results
 
-# Preview entire plot in small pic in corner like Reactome?
-# node popup menu with details
-# proteomics, RNAseq
-# link pathways together
+### Rafael suggestions that are not yet possible to implement ###
+# proteomics, RNAseq -> ReferenceRNASequence
 # missing metabolites in sample cohorts (COLMARq; p-values)
-# annotate pathway name over top of pathway sub-graph
-#  - select metabolite, highlight pathways in yellow OR clear list and only show the pathways it is in
