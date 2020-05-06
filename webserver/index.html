@@ -89,6 +89,16 @@
       max-width: 275px;
     }
 
+    .color-box {
+      width: 10px;
+      height: 10px;
+      display: inline-block;
+      background-color: #ccc;
+      position: absolute;
+      left: 5px;
+      top: 5px;
+    }
+
 </style>
     
 </head>
@@ -216,6 +226,38 @@
                 check_change("metabolite_filter");
             });
           </script>
+
+          <br><center>
+          <input type="text" id="ns_min" name="ns_min" value="min" size="5">
+           - <input type="text" id="ns_max" name="ns_max" value="max" size="5">
+          <button onclick = "set_nodesize()">Set size</button>
+          <button onclick = "set_nodesize('reset')">Reset</button>
+          <br>Set size (based on -log(p-value) by default)<br><br>
+          <select name="fc_setcolor" id="fc_setcolor" >
+            <option value = "#00FFFF">Aqua</option>
+            <option value = "#4682B4">Steelblue</option>
+            <option value = "#0000FF">Blue</option>
+            <option value = "#FF69B4">Hot Pink</option>
+            <option value = "#FF7F50">Coral</option>
+            <option value = "#FF0000">Red</option>
+            <option value = "#FF4500">Orangered</option>
+            <option value = "#FFA500">Orange</option>
+            <option value = "#FFFF00">Yellow</option>
+            <option value = "#FFDAB9">Peachpuff</option>
+            <option value = "#E6E6FA">Lavender</option>
+            <option value = "#EE82EE">Violet</option>
+            <option value = "#800080">Purple</option>
+            <option value = "#00FF00">Lime</option>
+            <option value = "#008000">Green</option>
+            <option value = "#20B2AA">Lightseagreen</option>
+          </select>
+          <input type="text" id="fc_1" name="fc_1" value="min" size="5">
+           - <input type="text" id="fc_2" name="fc_2" value="max" size="5">
+          <button onclick = "set_nodecolor()">Set color</button>
+          <br>Set color (based on fold change by default)<br>
+          <ul id="usercolorlist" style="list-style: none;"></ul>
+          </center>
+          
           <ol id="pathway_list" style="list-style-type: none; padding-left: 5px;"></ol>
           <center><button id="clear_pathwaylist" style="width: 50%; bottom: 1%;" onclick="clear_pathwaylist()">Clear Pathway List</button></center>
         </div>
