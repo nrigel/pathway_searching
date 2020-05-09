@@ -23,8 +23,7 @@ class ReactomeServer(object):
         self._driver.close()
 NMRT, Reactome = NMRTServer(), ReactomeServer()
 
-import cgi, cgitb, sys, math, json, traceback, csv
-import networkx as nx
+import cgi, cgitb, math, json, csv, traceback
 
 # Step 1: Organize data from HTML form
 form = cgi.FieldStorage() # Create instance of FieldStorage 
@@ -109,7 +108,7 @@ try:
                         # keep m to metabolite alias
                         if m not in pathway_search['metabolites'][opt]:
                             pathway_search['metabolites'][opt][m] = set()
-                        pathway_search['metabolites'][opt][m].add(metabolite)
+                        pathway_search['metabolites'][opt][m].add(metabolite) # metabolite matches are returned later
                         # add metabolite to pathway dict set to keep track of occurences
                         if p not in pathway_search['pathways'][opt]:
                             pathway_search['pathways'][opt][p] = set() # metabolite list
@@ -122,14 +121,15 @@ try:
                     pathway_search['pathways_to_return'][opt].extend([pathway])
             # iterate thru pathways that meet the cutoffs
             for pathway in pathway_search['pathways_to_return'][opt]:
-                pathway_search['pathway_graphs'][opt][pathway] = nx.DiGraph() # for organization
+                pathway_search['pathway_graphs'][opt][pathway] = [{}, [], {}, []] # nodedict, nodes, edges
                 G = pathway_search['pathway_graphs'][opt][pathway]
+                
                 result = db.run('MATCH (m:ReferenceMolecule)-[:referenceEntity]-(:PhysicalEntity)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway) WHERE p.dbId = '+pathway+' AND p.speciesName = "'+species+'" RETURN ([m, type(er), r, he, p])').value()
                 reactions = {} # reaction to set of metabolite, input/output pairs
 
                 for (m, er, r, he, p) in result: # iterate thru results
                     pathway_name = p['displayName'] # save pathway stuff as the name instead of the id
-                    if m['dbId'] not in G.nodes: # add node to G with all of the Reactome info
+                    if m['dbId'] not in G[0]: # add node to G with all of the Reactome info
                         node_dict = dict(m) # convert reactome node object to dict
                         node_dict['id'] = m['dbId'] # need this for cy plot or it will make up its own
                         node_dict['type'] = 'Metabolite' # need this for cy options later in the js
@@ -164,8 +164,8 @@ try:
                         else:
                             node_dict['shape'] = node_format[0]['shape']
                         
-
-                        G.add_nodes_from([(m['dbId'], node_dict)]) # add the node
+                        G[0][m['dbId']] = node_dict
+                        G[1].extend([{'data': node_dict, 'group': 'nodes'}])
 
                     if r['dbId'] not in reactions: # keep reaction info
                         rdict = dict(r)
@@ -178,20 +178,23 @@ try:
                         for (M, ER) in reactions[r]['metabolites']:
                             if m == M or er == ER: # don't want edges for two inputs or outputs, or for a node to itself
                                 continue
+                            edge_dict = {'data': {'reaction': reactions[r]['node']}, 'group': 'edges'}
                             if er == 'input': # directed edges
-                                G.add_edge(m, M, reaction=reactions[r]['node'])
+                                edge_dict['data']['source'] = m
+                                edge_dict['data']['target'] = M
                             if er == 'output':
-                                G.add_edge(M, m, reaction=reactions[r]['node'])
+                                edge_dict['data']['source'] = M
+                                edge_dict['data']['target'] = m
+                            if (edge_dict['data']['source'], edge_dict['data']['target'], edge_dict['data']['reaction']['dbId']) not in G[2]:
+                                G[2][(edge_dict['data']['source'], edge_dict['data']['target'], edge_dict['data']['reaction']['dbId'])] = edge_dict
+                                G[3].extend([edge_dict])
 
-
-                # save nodes and edges in the following format for cytoscape to read in in the js
-                nodes, edges = [{'data': G.nodes[node], 'group': 'nodes'} for node in G.nodes], [{'data': {'source': edge[0], 'target': edge[1], 'reaction': G.edges[edge]['reaction']}, 'group': 'edges'} for edge in G.edges]
                 # include metabolite count in pathway name for our pathway list in the html
                 pathway_name = pathway_name+' ('+str(len(pathway_search['pathways'][opt][pathway]))+')'
                 # add to this list so that we can order it
                 pathwaylist.extend([(pathway_name, len(pathway_search['pathways'][opt][pathway]))])
                 # save to dict for js to read in
-                pathway_results['pathway_data'][opt][pathway_name] = {'nodes': nodes, 'edges': edges}
+                pathway_results['pathway_data'][opt][pathway_name] = {'nodes': G[1], 'edges': G[3]}
             # save pathway list to results dict
             pathway_results['pathway_list'][opt] = [p[0] for p in sorted(pathwaylist, key=lambda x: -x[1])]
     print(json.dumps(pathway_results)) # convert to JSON and print results back to js
@@ -203,10 +206,11 @@ except Exception as e:
 
 ### To Do List ###
 # try collapsible lists again - this time save list contents to var, then clear list when button is pressed
-# add slider to adjust p-value scales
 # write function to remove white space from svg
 # figure out why isolated nodes in a pathway are thrown far away and correct that
 # run examples from literature
+# link unique pathways to infection type (biofilm vs planktonic)
+
 
 # Can we scrape PathBank data and curate our own database???
 

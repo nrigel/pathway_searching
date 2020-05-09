@@ -158,9 +158,8 @@ function query_database(flag){
                 var metabolitelist = Array.from(pathway_metabolites)
                 metabolitelist.sort(function (a, b) {return a.toLowerCase().localeCompare(b.toLowerCase());});
                 for (let item of metabolitelist) {
-                    var option = document.createElement("option");
+                    let option = document.createElement("option");
                     option.text = item; // metabolite name
-                    //option.setAttribute("id", "plmetlist_".concat(filename))
                     met_menu.add(option);
                 }
             } 
@@ -192,6 +191,9 @@ function set_pathwaylist(userfile, pathway_list, structure_options) {
     } 
 
     let font_colors = {"met": "blue", "mot": "darkgreen", "sub": "red"}
+    let cat_names = {"metabolites": "Metabolites", 
+                    "motif_0": "Motifs (0th Shell)", "motif_1": "Motifs (1st Shell)", "motif_2": "Motifs (2nd Shell)",
+                    "submotif_1": "Sub-Motifs (1st Shell)", "submotif_2": "Sub-Motifs (2nd Shell)", "submotif_3": "Sub-Motifs (3rd Shell)", "submotif_4": "Sub-Motifs (4th Shell)"}
     var pathway_ids = {};
     var i;
     for (let m of structure_options) {
@@ -199,7 +201,7 @@ function set_pathwaylist(userfile, pathway_list, structure_options) {
 
         if (!(m in pathway_lists[id])) {
             let label = document.createElement("label");
-            label.appendChild(document.createTextNode(m));
+            label.appendChild(document.createTextNode(cat_names[m]));
             label.setAttribute("style", "padding-left: 15px; color: ".concat(font_colors[m.slice(0, 3)]).concat(";"));
             ul.appendChild(label);
             
@@ -245,7 +247,7 @@ function set_pathwaylist(userfile, pathway_list, structure_options) {
 }
 
 function clear_pathwaylist() {
-    const ul = document.getElementById("pathway_list");
+    let ul = document.getElementById("pathway_list");
     //ul.innerHTML = "";
 
     while (ul.firstChild) {
@@ -255,6 +257,14 @@ function clear_pathwaylist() {
 
     cy.remove(cy.elements('node'));
     cy.remove(cy.elements('edge'));
+
+    // clear metabolite filter engine
+    let filter = document.getElementById("metabolite_filter");
+    $("#metabolite_filter").empty();
+    let option = document.createElement("option");
+    option.text = "All Metabolites";
+    option.value = "metfilt_AllMetabolites";
+    filter.add(option);
 }
 
 function set_nodesize(flag) {
