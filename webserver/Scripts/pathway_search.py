@@ -29,7 +29,7 @@ import cgi, cgitb, math, json, csv, traceback
 # Step 1: Organize data from HTML form
 form = cgi.FieldStorage() # Create instance of FieldStorage 
 
-print('works')
+print('works') 
 # Get data from fields
 datafile = form['userfile'].file
 structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4'] if form.getvalue(o)]
