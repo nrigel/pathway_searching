@@ -1,0 +1,430 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key attr.name="type" attr.type="string" for="edge" id="d2" />
+  <key attr.name="type" attr.type="string" for="node" id="d1" />
+  <key attr.name="name" attr.type="string" for="node" id="d0" />
+  <graph edgedefault="directed">
+    <node id="71783">
+      <data key="d0">Oxaloacetate + NADH + H+ &lt;=&gt; (S)-Malate + NAD+</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="29636">
+      <data key="d0">(S)-malic acid [ChEBI:30797]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="9654423">
+      <data key="d0">NAD(1-) [ChEBI:57540]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114918">
+      <data key="d0">hydron [ChEBI:15378]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="9654567">
+      <data key="d0">NADH(2-) [ChEBI:57945]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114926">
+      <data key="d0">oxaloacetic acid [ChEBI:30744]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="9012349">
+      <data key="d0">ME3:Mg2+ tetramer oxidatively decarboxylates MAL to PYR</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="114742">
+      <data key="d0">pyruvic acid [ChEBI:32816]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114732">
+      <data key="d0">NADPH [ChEBI:16474]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114738">
+      <data key="d0">carbon dioxide [ChEBI:16526]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114733">
+      <data key="d0">NADP(+) [ChEBI:18009]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="9012268">
+      <data key="d0">ME2:Mg2+ tetramer oxidatively decarboxylates MAL to PYR</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="70979">
+      <data key="d0">(S)-Malate + NAD+ &lt;=&gt; Oxaloacetate + NADH + H+</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="9012016">
+      <data key="d0">FAHD1:Zn2+ dimer hydrolyses OA to PYR</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="70982">
+      <data key="d0">Fumarate + H2O &lt;=&gt; (S)-Malate</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="114784">
+      <data key="d0">fumaric acid [ChEBI:18012]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114728">
+      <data key="d0">water [ChEBI:15377]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="70975">
+      <data key="d0">Acetyl-CoA + H2O + Oxaloacetate =&gt; Citrate + CoA</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="114737">
+      <data key="d0">coenzyme A [ChEBI:15346]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114795">
+      <data key="d0">citric acid [ChEBI:30769]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="29402">
+      <data key="d0">acetyl-CoA [ChEBI:15351]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="70994">
+      <data key="d0">Succinate &lt;=&gt; Fumarate (with FAD redox reaction on enzyme)</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="9629523">
+      <data key="d0">succinate(2-) [ChEBI:30031]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="71775">
+      <data key="d0">GDP + Orthophosphate + Succinyl-CoA &lt;=&gt; GTP + Succinate + CoA</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="114754">
+      <data key="d0">GTP [ChEBI:15996]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="9640385">
+      <data key="d0">succinyl-CoA(5-) [ChEBI:57292]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114736">
+      <data key="d0">phosphate(3-) [ChEBI:18367]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="114749">
+      <data key="d0">GDP [ChEBI:17552]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="70997">
+      <data key="d0">ADP + Orthophosphate + Succinyl-CoA &lt;=&gt; ATP + Succinate + CoA</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="8869364">
+      <data key="d0">ATP(4-) [ChEBI:30616]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="8869367">
+      <data key="d0">ADP(3-) [ChEBI:456216]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="71401">
+      <data key="d0">alpha-ketoglutarate + CoASH + NAD+ =&gt; succinyl-CoA + CO2 + NADH + H+</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="5316172">
+      <data key="d0">2-oxoglutarate(2-) [ChEBI:16810]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="70967">
+      <data key="d0">isocitrate + NAD+ =&gt; alpha-ketoglutarate + CO2 + NADH + H+ [IDH3]</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="114820">
+      <data key="d0">D-threo-isocitric acid [ChEBI:151]</data>
+      <data key="d1">Metabolite</data>
+    </node>
+    <node id="70971">
+      <data key="d0">citrate &lt;=&gt; isocitrate</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="450984">
+      <data key="d0">isocitrate + NADP+ =&gt; alpha-ketoglutarate + CO2 + NADPH + H+ [IDH2]</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <node id="450971">
+      <data key="d0">NADPH + NAD+ + H+ [cytosol] =&gt; NADP+ + NADH + H+ [mitochondrial matrix]</data>
+      <data key="d1">Reaction</data>
+    </node>
+    <edge source="71783" target="29636">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71783" target="9654423">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71783" target="9012349">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="71783" target="9012268">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="29636" target="9012349">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="29636" target="9012268">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="29636" target="70979">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654423" target="9012268">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654423" target="70979">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654423" target="71401">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654423" target="70967">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654423" target="450971">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114918" target="71783">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114918" target="450971">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9654567" target="71783">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114926" target="71783">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114926" target="9012016">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114926" target="70975">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9012349" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012349" target="114742">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012349" target="114732">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012349" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="114732" target="450971">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114733" target="9012349">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114733" target="450984">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9012268" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012268" target="114742">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012268" target="9654567">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012268" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70979" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70979" target="9654567">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70979" target="114926">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70979" target="9012016">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="70979" target="70975">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="9012016" target="114742">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="9012016" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70982" target="29636">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70982" target="70979">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="70982" target="9012349">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="70982" target="9012268">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="114784" target="70982">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114728" target="70982">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114728" target="70975">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="70975" target="114737">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70975" target="114795">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70975" target="70971">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="114737" target="71401">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114795" target="70971">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="29402" target="70975">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="70994" target="114784">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70994" target="70982">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="9629523" target="70994">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="71775" target="114737">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71775" target="114754">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71775" target="9629523">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71775" target="70994">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="9640385" target="71775">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="9640385" target="70997">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114736" target="71775">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114736" target="70997">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114749" target="71775">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="70997" target="114737">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70997" target="8869364">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70997" target="9629523">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70997" target="70994">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="8869367" target="70997">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="71401" target="9640385">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71401" target="9654567">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71401" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="71401" target="70997">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="71401" target="71775">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="5316172" target="71401">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="70967" target="5316172">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70967" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70967" target="9654567">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70967" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70967" target="71401">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="114820" target="70967">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="114820" target="450984">
+      <data key="d2">input</data>
+    </edge>
+    <edge source="70971" target="114820">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="70971" target="70967">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="70971" target="450984">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="450984" target="5316172">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450984" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450984" target="114732">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450984" target="114738">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450984" target="450971">
+      <data key="d2">precedingEvent</data>
+    </edge>
+    <edge source="450971" target="114733">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450971" target="114918">
+      <data key="d2">output</data>
+    </edge>
+    <edge source="450971" target="9654567">
+      <data key="d2">output</data>
+    </edge>
+  </graph>
+</graphml>

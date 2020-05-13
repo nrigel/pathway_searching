@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key attr.name="logpvalue" attr.type="double" for="node" id="d2" />
+  <key attr.name="fold_change" attr.type="double" for="node" id="d1" />
+  <key attr.name="type" attr.type="string" for="node" id="d0" />
+  <graph edgedefault="undirected">
+    <node id="Acetic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.1484505724259053</data>
+      <data key="d2">0.47247077995554454</data>
+    </node>
+    <node id="Creatine_phosphate">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.7724673170492485</data>
+      <data key="d2">1.1180199346437198</data>
+    </node>
+    <node id="DSS">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9407206842573085</data>
+      <data key="d2">0.2031068554445398</data>
+    </node>
+    <node id="Glycerol">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.9425187451060698</data>
+      <data key="d2">0.1034982365991692</data>
+    </node>
+    <node id="HEPES">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.7454044793937163</data>
+      <data key="d2">1.9668665883279</data>
+    </node>
+    <node id="Itaconic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.6639759198392761</data>
+      <data key="d2">2.0765829822871824</data>
+    </node>
+    <node id="p_Toluic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.5208174942874986</data>
+      <data key="d2">2.422827045788318</data>
+    </node>
+  </graph>
+</graphml>

@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key attr.name="logpvalue" attr.type="double" for="node" id="d2" />
+  <key attr.name="fold_change" attr.type="double" for="node" id="d1" />
+  <key attr.name="type" attr.type="string" for="node" id="d0" />
+  <graph edgedefault="undirected">
+    <node id="Itaconic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">1.38</data>
+      <data key="d2">7.824046010856292</data>
+    </node>
+    <node id="Creatine_phosphate">
+      <data key="d0">metabolite</data>
+      <data key="d1">12.96</data>
+      <data key="d2">5.318520073865556</data>
+    </node>
+    <node id="Acetic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">5.45</data>
+      <data key="d2">2.861201380596385</data>
+    </node>
+    <node id="Glycerol">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.8</data>
+      <data key="d2">1.192373668482584</data>
+    </node>
+    <node id="p_Toluic_acid">
+      <data key="d0">metabolite</data>
+      <data key="d1">0.59</data>
+      <data key="d2">0.9931717762101128</data>
+    </node>
+  </graph>
+</graphml>

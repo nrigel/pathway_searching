@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    
+    <meta http-equiv="Expires" content="Tue, 01 Jan 1995 12:12:12 GMT">
+    <meta http-equiv="Pragma" content="no-cache">
+    
+    <link rel="stylesheet" type="text/css" href="http://spin.ccic.osu.edu//mystyles2.css">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script type="text/javascript" src="Scripts/pathway_search.js" ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.14.1/cytoscape.min.js"></script>
+    <!-- used for the metabolites search engine -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script> 
+    <!-- used for plot popups-->
+    <link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.0/jquery.qtip.css"> 
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/qtip2/2.2.0/jquery.qtip.js"></script> 
+    <script type="text/javascript" src="Scripts/cytoscape-qtip.js"></script>
+    <!-- used for exporting plot as SVG -->
+    <script src="Scripts/cytoscape-svg.js"></script>
+
+    <title>COLMAR-Pathways</title>
+    
+    <style>
+
+    .overlay {
+      fill: none;
+      pointer-events: all;
+    }
+
+    .brush .extent {
+      stroke: #fff;
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
+
+    .loader {
+      border: 16px solid #f3f3f3; /* Light grey */
+      border-top: 16px solid #3498db; /* Blue */
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      animation: spin 2s linear infinite;
+      position:absolute;
+      top:50%;
+      left:45%;
+      transform:translate(-50%, -50%);
+      color: white; background: #666666; opacity: .8;
+      z-index: 1000;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* control displayed tags */
+    .select2-selection__choice {
+      max-width: 100%;
+      max-height: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* control dropdown box */
+    .select2-results {
+      max-height: 200px;
+      overflow: hidden;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }    
+
+    /* controls result box overflow */
+    .select2-selection {
+      max-height: 100px;
+      overflow: scroll;
+      overflow-y: scroll;
+    } 
+
+    /* controls the format of text inside graph popups, needs to match js style also */
+    .qtip-content {
+      position: relative;
+      overflow: hidden;
+      overflow-x: scroll;
+      overflow-y: scroll;
+      text-align: left;   /*  default: left  */
+      word-wrap: normal;
+      word-break: keep-all;
+      max-height: 200px;
+      max-width: 275px;
+    }
+
+    .color-box {
+      width: 10px;
+      height: 10px;
+      display: inline-block;
+      background-color: #ccc;
+      position: absolute;
+      left: 5px;
+      top: 5px;
+    }
+
+    </style>
+    
+</head>
+
+
+
+<body>
+<div id="container">
+
+    <div id="header">
+         
+    <div id="osu_navbar">
+
+	<h2 class="osu-semantic">Ohio State Navbar</h2>
+    
+		<div class="univ_info">
+			<p class="univ_name"><a href="http://osu.edu" title="The Ohio State University">The Ohio State University</a></p>
+		</div>
+		<div class="univ_links">
+			<div class="links">
+				<ul>
+					<li><a href="http://www.osu.edu/help.php" class="help" title="Help">Help</a></li>
+					<li><a href="http://buckeyelink.osu.edu/" class="buckeyelink" title="BuckeyeLink">BuckeyeLink</a></li>
+					<li><a href="http://www.osu.edu/map/" class="map" title="Map">Map</a></li>
+					<li><a href="http://www.osu.edu/findpeople.php" class="findpeople" title="Find People">Find People</a></li>
+					<li><a href="https://email.osu.edu/" class="webmail" title="Webmail">Webmail</a></li> 
+					<!--<li><a href="http://www.osu.edu/search/" class="search" title="Search">Search Ohio State</a></li>-->
+				</ul>
+			</div><!-- end links -->
+			<div class="search">
+
+<form action="http://www.osu.edu/search.html" method="get">
+
+            	<legend><span class="osu-semantic">Search Ohio State</span></legend>
+            	<label for="search-field" class="osu-semantic">Search Ohio State</label>
+            	<input type="text" id="search-field" placeholder="Search Ohio State" name="query" value="">
+            	<button type="submit" id="Search">Search</button>
+            </form>
+          </div><!-- end search -->
+		</div><!-- end univ_links-->
+	  </div>
+        <div id="ccic">
+        <a href="/" id="logo_ccic" > <img src="http://spin.ccic.osu.edu//img/ccic.jpg" alt="Home"></a>
+        <a href="http://osu.edu" id="logo_osu" > <img src="http://spin.ccic.osu.edu//img/osu.jpg" alt="Home"></a>
+        </div>
+
+<!--
+<div style="clear: both"></div>
+<div>
+    <h1>
+        <font color="red">This server will be off line from 11:30 AM (Eastern Time DST), Sep. 26th, 2016 for about 1 hour for hardware replacement. </font>
+    </h1>
+</div>
+-->
+    </div>
+    
+    <div id="menu">
+        <ul><li><a href="http://spin.ccic.osu.edu/index.php/colmar/index" class="btn">Home</a></li><li><a href="http://spin.ccic.osu.edu/index.php/covariance/index" class="btn">Covariance</a></li><li><a href="http://spin.ccic.osu.edu/index.php/demixc/index" class="btn">DemixC</a></li><li><a href="http://spin.ccic.osu.edu/index.php/query/index" class="btn">1D-Query</a></li><li><a href="http://spin.ccic.osu.edu/index.php/toccata2/index" class="btn"><sup>1</sup>H(<sup>13</sup>C)-TOCCATA</a></li><li><a href="http://spin.ccic.osu.edu/index.php/toccata/index" class="btn"><sup>13</sup>C-TOCCATA</a></li><li><a href="http://spin.ccic.osu.edu/index.php/hsqc/index" class="btn"><sup>13</sup>C-<sup>1</sup>H_HSQC</a></li><li><a href="http://spin.ccic.osu.edu/index.php/colmarm/index" class="btn">COLMARm</a></li><li><a href="http://spin.ccic.osu.edu/index.php/tocsy/index" class="btn">TOCSY</a></li><li><a href="http://spin.ccic.osu.edu/index.php/colmar/document" class="btn">Documentation</a></li><li><a href="http://colmarpathways.ddns.net:5464/COLMAR-Pathways/" class="btn0">Pathways</a></li><li><a href="http://spin.ccic.osu.edu/index.php/colmar/download" class="btn">Download</a></li><li class='last'><a href="http://spin.ccic.ohio-state.edu/index.php/welcome/index" class="btn"><img width='23px' src=http://spin.ccic.osu.edu/img/home.png></a></li></ul>
+    </div>
+
+
+	<div id="body">
+            
+        <h2>COLMAR-Pathways</h2>
+        
+        <!-- loading wheel script -->
+        <script> 
+          function hide_loader() {
+            document.getElementById("loader").style.display = "none";
+          }
+        </script>
+        
+        <div id="loader" class="loader" onclick="hide_loader()"><script>hide_loader()</script></div>
+
+        <form onsubmit="return false;" id="process_load" enctype="multipart/form-data" method="post" accept-charset="utf-8">
+        
+        <div id="step1" class="topclass" style="width: 48.5%; height: 240px">
+          <strong>STEP1</strong>: Metabolite Submission<br>
+          <p>Your name and institute* <input type="text" name="username" value="" size="40"><br><br>
+          Metabolite File (CSV):  <input type="file" name="userfile" value="None" id="fileinput"><br><br>Example:
+          <center><table id="prev_table" style="width:75%"><tr><th>COLMAR ID or Name</th><th>P-Value</th><th>Fold Change</th></tr><tr><td>ATP</td><td>0.75</td><td>1.08</td></tr>
+          <tr><td>bmse000191</td><td>0.60</td><td>1.39</td></tr></table></center><p><br></p></p>
+        </div>
+
+        <div id="step2" class="topclass" style="width: 48.5%; height: 240px">    
+          <strong>STEP2</strong>: Pathway Options<br> 
+          
+          <br><input type="checkbox" name="metabolites" value="value" id="metabolites" checked> <font color="blue">Metabolites</font>
+          <br><input type="checkbox" name="motifs" value="value" onclick="check_change('motifs')" id="motifs"> <font color="darkgreen">Motifs - </font>
+          <input type="checkbox" name="motif_0" value="value" id="motif_0"> <font color="darkgreen">0<sup>th</sup></font>
+          <input type="checkbox" name="motif_1" value="value" id="motif_1"> <font color="darkgreen">1<sup>st</sup></font>
+          <input type="checkbox" name="motif_2" value="value" id="motif_2"> <font color="darkgreen">2<sup>nd</sup> Shell</font>
+
+          <br><input type="checkbox" name="submotifs" value="value" onclick="check_change('submotifs')" id="submotifs"> <font color="red">Sub-Motifs - </font>
+          <input type="checkbox" name="submotif_1" value="value" id="submotif_1"> <font color="red">1<sup>st</sup></font>
+          <input type="checkbox" name="submotif_2" value="value" id="submotif_2"> <font color="red">2<sup>nd</sup></font>
+          <input type="checkbox" name="submotif_3" value="value" id="submotif_3"> <font color="red">3<sup>rd</sup></font>
+          <input type="checkbox" name="submotif_4" value="value" id="submotif_4"> <font color="red">4<sup>th</sup> Shell</font>
+
+          <br>Note: Lower shell (sub-)motifs can cause ambiguous results.
+          <br><p><label>Species: </label>
+            <select name="specieslist" id="specieslist" >
+              <option value = "Homo sapiens">Homo sapiens</option>
+              <option value = "Bos taurus">Bos taurus</option>
+              <option value = "Caenorhabditis elegans">Caenorhabditis elegans</option>
+              <option value = "Canis familiaris">Canis familiaris</option>
+              <option value = "Danio rerio">Danio rerio</option>
+              <option value = "Dictyostelium discoideum">Dictyostelium discoideum</option>
+              <option value = "Drosophila melanogaster">Drosophila melanogaster</option>
+              <option value = "Gallus gallus">Gallus gallus</option>
+              <option value = "Mus musculus">Mus musculus</option>
+              <option value = "Mycobacterium tuberculosis">Mycobacterium tuberculosis</option>
+              <option value = "Plasmodium falciparum">Plasmodium falciparum</option>
+              <option value = "Rattus norvegicus">Rattus norvegicus</option>
+              <option value = "Saccharomyces cerevisiae">Saccharomyces cerevisiae</option>
+              <option value = "Schizosaccharomyces pombe">Schizosaccharomyces pombe</option>
+              <option value = "Sus scrofa">Sus scrofa</option>
+              <option value = "Xenopus tropicalis">Xenopus tropicalis</option>
+            </select>
+        </p>Minimum number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="4" size="5">&nbsp;
+        <br><br><center><button id="search_button" style="width: 50%; height: 15px" onclick="query_database()">Search for Pathways</button></center><br><br>
+        </div></form>
+            
+        <div id="select_pathways" class="topclass" style="width: 21%; height: 800px; overflow-x: scroll;overflow-y: scroll; white-space: nowrap;">
+          <strong>STEP3</strong>: Pathway Selection<br><br>
+          <p style="display: none;">Placeholder</p>
+          <center><select class="filter_metabolites" id="metabolite_filter" multiple="multiple" style="width: 85%; height: 6px;">
+          <option value="metfilt_AllMetabolites">All Metabolites</option>
+          </select></center>
+          <center>Optional: Select Metabolite(s)</center>
+          <script>$(document).ready(function() {
+            $(".filter_metabolites").select2({
+              placeholder: "All Metabolites",
+              allowClear: true
+            });
+            });
+            $(".filter_metabolites").on('select2:select', function (e) {
+                check_change("metabolite_filter");
+            });
+            $(".filter_metabolites").on('select2:unselect', function (e) {
+                check_change("metabolite_filter");
+            });
+          </script>
+
+          <br><center>
+          <input type="text" id="ns_min" name="ns_min" value="min" size="5">
+           - <input type="text" id="ns_max" name="ns_max" value="max" size="5">
+          <button onclick = "set_nodesize()">Set size</button>
+          <button onclick = "set_nodesize('reset')">Reset</button>
+          <br>Set size (based on -log(p-value) by default)<br><br>
+          <select name="fc_setcolor" id="fc_setcolor" >
+            <option value = "#00FFFF">Aqua</option>
+            <option value = "#4682B4">Steelblue</option>
+            <option value = "#0000FF">Blue</option>
+            <option value = "#FF69B4">Hot Pink</option>
+            <option value = "#FF7F50">Coral</option>
+            <option value = "#FF0000">Red</option>
+            <option value = "#FF4500">Orangered</option>
+            <option value = "#FFA500">Orange</option>
+            <option value = "#FFFF00">Yellow</option>
+            <option value = "#FFDAB9">Peachpuff</option>
+            <option value = "#E6E6FA">Lavender</option>
+            <option value = "#EE82EE">Violet</option>
+            <option value = "#800080">Purple</option>
+            <option value = "#00FF00">Lime</option>
+            <option value = "#008000">Green</option>
+            <option value = "#20B2AA">Lightseagreen</option>
+          </select>
+          <input type="text" id="fc_1" name="fc_1" value="min" size="5">
+           - <input type="text" id="fc_2" name="fc_2" value="max" size="5">
+          <button onclick = "set_nodecolor()">Set color</button>
+          <br>Set color (based on fold change by default)<br>
+          <ul id="usercolorlist" style="list-style: none;"></ul>
+          </center>
+          
+          <ol id="pathway_list" style="list-style-type: none; padding-left: 5px;"></ol>
+          <center><button id="clear_pathwaylist" style="width: 50%; bottom: 1%;" onclick="clear_pathwaylist()">Clear Pathway List</button></center>
+        </div>
+
+        <div id="cy" class="topclass" style="width: 76%; height: 800px; overflow: hidden;">
+          <strong>STEP4</strong>: Pathway Visualization<br>
+          <script>setup_cy("cy");</script>
+          <img src="images/legend.png" class="ribbon" style="bottom: 1%; right: 0.5%; position: absolute; width: 30%;">
+        </div>
+
+        
+
+
+        
+        <div id="reporting" class="topclass" style="width: 48.5%; height: 240px; float: left;">
+            <strong>STEP5</strong>: Save metabolic pathway results<br>
+            <!--
+            Using <input type="radio" name="delimiter" value="space"> Space or <input type="radio" name="delimiter" value="comma" checked> Comma as delimiter.<br>
+            -->
+
+        <p><button onclick = "saveResults('CSV')">Save results as CSV</button> <input id="csv_name" style="width: 120px" value="pathway_results.csv"></p>   
+        <p><button id="savePNG" onclick = "saveResults('PNG')">Save plot as PNG</button> <input id="png_name" style="width: 120px" value="pathway_results.png"></p>
+        <p><button id="saveSVG" onclick = "saveResults('SVG')">Save plot as SVG</button> <input id="svg_name" style="width: 120px" value="pathway_results.svg"></p>
+        
+        <!--
+        <p><button id="save2" onclick="save_vector()">save plot files in vector format</button></p>
+        -->
+        <canvas id="canvas" style="display: none"></canvas>
+        </div>
+        
+        <div id="reporting" class="topclass" style="width: 48.5%; height: 240px; float: left;">
+          <strong>OPTIONAL</strong>: Load Session<br>
+        </div>
+      </div>
+        
+
+
+
+        
+        <div id="table_region" style="clear: both"> </div>
+        
+        <div style="clear: both"></div>   
+        
+        <div id="id_info" style="width:inherit; text-align: center;"></div>
+        
+        <p>
+        <img src="http://spin.ccic.osu.edu//img/database.png" width="30" >
+        <a href="javascript:void(0);" onclick="window.open('http://spin.ccic.osu.edu/database/hsqc_compound_list.pdf')">List of compounds in our database</a>
+        </p>
+
+
+        <div class="reference">
+                    <p><img src="http://spin.ccic.osu.edu//img/reference.png" width="30" >
+        Reference</p>     
+                <ul>
+        <br><br>Rigel, N.; Bruschweiler, R. COLMAR-Pathways </a></li>
+        </ul>
+                
+                <img src="http://spin.ccic.osu.edu//img/email.png">
+        <a href="mailto:li.4644@osu.edu">Questions or comments? Please feel free to contact us.</a>                
+
+        <p>Acknowledgements</p>
+        This web server and the research that led to it is supported by the National Institutes of Health (Grant R01 GM 066041).<br>Most chemical shifts in COLMAR database were retrieved from the existing databases listed below, which all allow public access. 
+                <ul>
+        <li><a href="javascript:void(0);" onclick="window.open('http://www.hmdb.ca/')"> HMDB</a></li>
+        </ul>
+                <ul>
+        <li><a href="javascript:void(0);" onclick="window.open('http://www.bmrb.wisc.edu/')"> BMRB</a></li>
+        </ul>
+                <ul>
+        <li><a href="javascript:void(0);" onclick="window.open('https://nmrshiftdb.nmr.uni-koeln.de/')"> NMRShiftDB</a></li>
+        </ul>
+                <ul>
+        <li><a href="javascript:void(0);" onclick="window.open('https://www.genome.jp/kegg/')"> KEGG</a></li>
+        </ul>
+                </div>
+        
+        
+        <p class="footnote">*This information is only used for the compilation of our webserver usage data.</p>
+        <p class="footnote">This server was last updated at April 21 2020 11:55pm.</p>
+        
+        
+
+    <div id="footer">
+               <a href="http://www.ohio-state.edu/"><img src="http://spin.ccic.osu.edu//img/OSU-Logo-Footer.png" width="300" height="44" alt="OSU Logo" align="center"></a></br>
+       <p align="middle"> © 2013, The Ohio State University – Campus Chemical Instrument Center. All Rights Reserved. For questions, please contact lidawei@gmail.com</p>
+       
+       <div id="keyword"> Metabolomics Metabolic Metabolite Metabolome Small molecule Profiling Metabonomics Databank Database Library Resource Query Search Assign Assignment Annotate Annotation Identify Identification Elucidate Elucidation Customized Algorithm Software NMR Nuclear Magnetic Resonance Spectroscopy Chemical Shift 1H 13C HSQC TOCSY HSQC-TOCSY COSY HMBC CT-TOCSY 1D 2D Dimension One dimensional Two dimensional Covariance DemixC NMR-based Mass spectrometry MS Accurate Mass Structure Reference Platform Carbon Proton Qualitative Bank Biomarker Bioinformatics Natural Product Bruker Varian Complex Mixture Analysis Targeted Untargeted Spectrum Spectra</div>
+
+
+    </div>
+
+</div>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
