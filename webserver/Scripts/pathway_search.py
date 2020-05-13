@@ -1,5 +1,5 @@
-#!/opt/anaconda2/envs/P3/bin/python
-# Python 3.6.10 :: Anaconda, Inc.
+#!/usr/bin/env python3
+# Python 3.6.10 :: Anaconda, Inc.#!/opt/anaconda2/envs/P3/bin/python
 
 print("Content-type:text/html\r\n\r\n") # print HTML header
 
