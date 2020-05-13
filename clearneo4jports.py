@@ -3,7 +3,7 @@
 import os
 
 pids = set()
-for port in [7687, 7688]:
+for port in [7687, 7688, 7476, 7689]:
 
     response = os.popen('lsof -i :'+str(port)).read()
 

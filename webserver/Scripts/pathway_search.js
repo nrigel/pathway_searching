@@ -211,7 +211,6 @@ function set_pathwaylist(userfile, pathway_list, structure_options) {
             ul.appendChild(m_div);
             ul.appendChild(document.createElement("br"));
             
-            
             pathway_lists[id][m] = {};
             pathway_checkboxes[id][m] = [];
         }
