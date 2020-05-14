@@ -8,7 +8,6 @@ print("Content-type:text/html\r\n\r\n") # print HTML header
 node_format = [{'size': 30, 'color': ['#E50002', '#E02C00', '#DC5900', '#D88500', '#D4AF00', '#C8CF00', '#99CB00', '#6CC700', '#41C300', '#18BF00'], 'shape': 'ellipse'}, 
                 {'size': 30, 'color': '#0074BF', 'shape': 'square'}]
 
-
 dbsettings = {'NMRT': {'port': '7687', 'user': 'neo4j', 'password': 'olivia05'},
       'Reactome': {'port': '7688', 'user': 'neo4j', 'password': 'olivia05'}}
 from neo4j import GraphDatabase
@@ -28,8 +27,6 @@ import cgi, cgitb, math, json, csv, traceback
 
 # Step 1: Organize data from HTML form
 form = cgi.FieldStorage() # Create instance of FieldStorage 
-
-print('works') 
 
 # Get data from fields
 datafile = form['userfile'].file
