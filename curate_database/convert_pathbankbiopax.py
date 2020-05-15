@@ -3,8 +3,6 @@ import networkx as nx
 
 filename = 'PW002044.owl'
 
-context = ET.iterparse('PW002044.owl', events=('end', ))
-
 level = -1
 G = nx.DiGraph() # Add data to Graph object
 skip_elements = ['Ontology', 'imports']
@@ -38,6 +36,9 @@ for (event, elem) in ET.iterparse(filename, ['start', 'end']):
     
     elem_data = {}
 
+    if elem.text:
+        elem.set('text', elem.text)
+
     for key, value in elem.items():
         KEY, VALUE = key, value
         if '{' == key[0]:
@@ -69,6 +70,17 @@ g = nx.DiGraph()
 
 pathways = [node for node in G.nodes if G.nodes[node]['tag'] == 'Pathway']
 
+for pathway in pathways:
+    pathwayOrder = [e[1] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'pathwayOrder']
+    pathwayComponent = [e[1] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'pathwayComponent']
+    displayName = [G.nodes[e[1]]['text'] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'displayName']
+    name = [G.nodes[e[1]]['text'] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'name']
+    organism = [G.nodes[e[1]]['resource'] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'organism']
+    xrefs = [G.nodes[e[1]]['resource'] for e in G.out_edges(pathway) if G.nodes[e[1]]['tag'] == 'xref']
+    for x in range(len(xrefs)):
+        if 'Reference/' in xrefs[x]:
+            xrefs[x] = xrefs[x][len('Reference/'):]
+    print(xrefs)
 # pathwayOrder --> BiochemicalPathwayStep --> stepConversion --> BioChemical Reaction: left, right, name, spontaneous?, stoichiometry, conversionDirection
 # make reaction SVG images using OpenBabel, RDKit?
 exit()

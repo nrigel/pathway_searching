@@ -1,9 +1,7 @@
 updating_Reactome_molecules/colmarid_to_hmdb/bmrb_entries
 updating_Reactome_molecules/chebi_hmdb_conversion/HMDB_structures.sdf
 updating_Reactome_molecules/chebi_hmdb_conversion/ChEBI_complete.sdf
-curate_database/pathbank_all_biopax
-curate_database/pathbank_all_biopax.zip
-curate_database/ziwrfpvg
+curate_database/pathbank_data
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -130,6 +128,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.DS_Store
 .DS_Store
 .DS_Store
 .DS_Store
