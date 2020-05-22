@@ -176,7 +176,7 @@
 
         <form onsubmit="return false;" id="process_load" enctype="multipart/form-data" method="post" accept-charset="utf-8">
         
-        <div id="step1" class="topclass" style="width: 48.5%; height: 240px">
+        <div id="step1" class="topclass" style="width: 48.5%; height: 420px">
           <strong>STEP1</strong>: Metabolite Submission<br>
           <p>Your name and institute* <input type="text" name="username" value="" size="40"><br><br>
           Metabolite File (CSV):  <input type="file" name="userfile" value="None" id="fileinput"><br><br>Example:
@@ -184,7 +184,7 @@
           <tr><td>bmse000191</td><td>0.60</td><td>1.39</td></tr></table></center><p><br></p></p>
         </div>
 
-        <div id="step2" class="topclass" style="width: 48.5%; height: 240px">    
+        <div id="step2" class="topclass" style="width: 48.5%; height: 420px">    
           <strong>STEP2</strong>: Pathway Options<br> 
           
           <br><input type="checkbox" name="metabolites" value="value" id="metabolites" checked> <font color="blue">Metabolites</font>
@@ -203,25 +203,48 @@
           <br><p><label>Species: </label>
             <select name="specieslist" id="specieslist" >
               <option value = "Homo sapiens">Homo sapiens</option>
+              <option value = "Arabidopsis thaliana">Arabidopsis thaliana</option>
               <option value = "Bos taurus">Bos taurus</option>
               <option value = "Caenorhabditis elegans">Caenorhabditis elegans</option>
-              <option value = "Canis familiaris">Canis familiaris</option>
-              <option value = "Danio rerio">Danio rerio</option>
-              <option value = "Dictyostelium discoideum">Dictyostelium discoideum</option>
+              <!--<option value = "Canis familiaris">Canis familiaris</option>-->
+              <!--<option value = "Danio rerio">Danio rerio</option>-->
+              <!--<option value = "Dictyostelium discoideum">Dictyostelium discoideum</option>-->
               <option value = "Drosophila melanogaster">Drosophila melanogaster</option>
-              <option value = "Gallus gallus">Gallus gallus</option>
+              <option value = "Escherichia coli">Escherichia coli</option>
+              <!--<option value = "Gallus gallus">Gallus gallus</option>-->
               <option value = "Mus musculus">Mus musculus</option>
-              <option value = "Mycobacterium tuberculosis">Mycobacterium tuberculosis</option>
-              <option value = "Plasmodium falciparum">Plasmodium falciparum</option>
+              <!--<option value = "Mycobacterium tuberculosis">Mycobacterium tuberculosis</option>-->
+              <!--<option value = "Plasmodium falciparum">Plasmodium falciparum</option>-->
+              <option value = "Pseudomonas aeruginosa">Pseudomonas aeruginosa</option>
               <option value = "Rattus norvegicus">Rattus norvegicus</option>
               <option value = "Saccharomyces cerevisiae">Saccharomyces cerevisiae</option>
-              <option value = "Schizosaccharomyces pombe">Schizosaccharomyces pombe</option>
-              <option value = "Sus scrofa">Sus scrofa</option>
-              <option value = "Xenopus tropicalis">Xenopus tropicalis</option>
+              <!--<option value = "Schizosaccharomyces pombe">Schizosaccharomyces pombe</option>-->
+              <!--<option value = "Sus scrofa">Sus scrofa</option>-->
+              <!--<option value = "Xenopus tropicalis">Xenopus tropicalis</option>-->
             </select>
         </p>Minimum number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="4" size="5">&nbsp;
-        <br><br><center><button id="search_button" style="width: 50%; height: 15px" onclick="query_database()">Search for Pathways</button></center><br><br>
-        </div></form>
+        <br>Maximum number of pathways per metabolite clique: <input type="text" id="clique_cutoff" name="clique_cutoff" value="25" size="5">&nbsp;
+        <br>
+        <p>Number of pathways: </p><p id="number_of_pathways"></p>
+        
+        <input type="checkbox" name="search_opt" value="true" id="search_opt" style="display: none;" checked>
+        <center><table id="clique_table" style="display: block; width: 90%; height: 100px; overflow-y: scroll;  table-layout:fixed; border-left: 0px solid; border-right: 0px solid;">
+          <tr>
+            <th style="width: 5%; word-wrap: break-all; border: none;">Select</th>
+            <th style="width: 76.5%; word-wrap: break-all; border: none;">Metabolites Clique</th>
+            <th style="width: 18.5%; word-wrap: break-all; border: none;">Pathway Count</th>
+          </tr>
+        </table></center><br>
+
+        <center>
+          <button id="search_button1" name="prelim_button" style="width: 40%; height: 15px" onclick="query_database('preliminary')">List Pathways</button>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          <button id="search_button1" style="width: 40%; height: 15px" onclick="query_database('production')">Visualize Pathways</button>
+        </center>
+        
+        </div>
+
+      </form>
             
         <div id="select_pathways" class="topclass" style="width: 21%; height: 800px; overflow-x: scroll;overflow-y: scroll; white-space: nowrap;">
           <strong>STEP3</strong>: Pathway Selection<br><br>
@@ -275,7 +298,7 @@
           <ul id="usercolorlist" style="list-style: none;"></ul>
           </center>
           
-          <ol id="pathway_list" style="list-style-type: none; padding-left: 5px;"></ol>
+          <ol id="pathway_list" style="list-style-type: none; padding-left: 5px; overflow: scroll;"></ol>
           <center><button id="clear_pathwaylist" style="width: 50%; bottom: 1%;" onclick="clear_pathwaylist()">Clear Pathway List</button></center>
         </div>
 

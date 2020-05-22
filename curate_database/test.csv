@@ -1,0 +1,2 @@
+PW_ID:ID,spinsystems:string[],motif_0:string[],:LABEL
+"PW_C000414","2 3 4 19 20 CCCCC_1 2 3 4 5 OCC1OC(C(C1O)O)N_2 3 5 6 7 POCC1OC(C(C1O)O)N(C)C_3 4 6 7 8;23 C_1 NC=N_2 CN=CN(C)C_3;28 C_1 NC=N_2 CN=CN=C_3","CCCCC_1 2 3 4 5;C_1","Metabolite;COLMARm"

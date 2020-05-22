@@ -1,10 +1,6 @@
 var relative_dir; //relative_dir on the server, needed for xhttp call
 var session_id;
 
-var structure_labels = {"metabolites": "Metabolites", 
-                    "motif_0": "Motifs (0th Shell)", "motif_1": "Motifs (1st Shell)", "motif_2": "Motifs (2nd Shell)",
-                    "submotif_1": "Sub-Motifs (1st Shell)", "submotif_2": "Sub-Motifs (2nd Shell)", "submotif_3": "Sub-Motifs (3rd Shell)", "submotif_4": "Sub-Motifs (4th Shell)"};
-var clique_checkboxes = {};
 var pathway_metabolites = new Set(); // pathway doc ids to list of metabolites
 var pathway_data = {}; // pathway checkbox ids to nodes and edges
 var metabolites_to_pathways = {}; // metabolite names to list of pathway ids
@@ -93,13 +89,6 @@ function check_change(flag) {
 }
 
 function query_database(flag){
-
-    if (flag == 'preliminary') {
-        document.getElementById("search_opt").setAttribute("value", "true");
-    } else {
-        document.getElementById("search_opt").setAttribute("value", "false");
-    }
-
     var oReq = new XMLHttpRequest();
     var base_url = window.location.href;
 
@@ -115,139 +104,66 @@ function query_database(flag){
             if (oReq.status === 200) {
                 console.log(oReq.response);
                 var result = JSON.parse(oReq.response);
-                
                 let structure_options = result.structure_options;
+                var pathway_ids = set_pathwaylist(userfile, result.pathway_list, structure_options);
 
-                if (flag == 'preliminary') {
-                    clique_checkboxes = {}
-                    
-                    let ptable = document.getElementById("clique_table");
-
-                    let clique_cutoff = parseInt(document.getElementById("clique_cutoff").value, 10);
-                    let pcount = document.getElementById("number_of_pathways");
-                    let cliques = {};
-                    
-                    for (let m of structure_options) {
-                        cliques[m] = {};
-                        for (i = 0; i < result[m]['keys'].length; i++) { 
-                            let clique = result[m]['keys'][i].slice(1).join(', ');
-                            cliques[m][clique] = result[m]['values'][i];
-                        }
+                for (let m of structure_options) {
+                    if (!(m in result.pathway_list)) {
+                        continue;
                     }
 
-                    for (let m of structure_options) {
-                        let header = ['<tbody><tr>',
-                                '<th style="width: 5%; word-wrap: break-all; border: none;">Select</th>',
-                                '<th style="width: 76.5%; word-wrap: break-all; border: none;">'.concat(structure_labels[m]).concat(' Clique</th>'),
-                                '<th style="width: 18.5%; word-wrap: break-all; border: none;">Pathway Count</th>',
-                                '</tr>',
-                                '</tbody>']
-                        ptable.innerHTML = header.join('\n');
-
-                        for (let [clique, count] of Object.entries(cliques[m])) {
-                            let row = ptable.insertRow(-1);
-                            let n = ptable.getElementsByTagName('td').length;
-                            
-                            let cell0 = row.insertCell(0);
-                            let cbox = document.createElement("input");
-                            cbox.setAttribute("type", "checkbox");
-                            cbox.setAttribute("name", "cbox".concat(n.toString()));
-                            cbox.setAttribute("value", m.concat(', ').concat(clique))
-                            cbox.checked = true;
-                            if (clique_cutoff < count) {
-                                cbox.checked = false;
-                            }
-                            cell0.appendChild(cbox);
-                            cell0.setAttribute("value", "cbox");
-                            cell0.setAttribute("valign", "middle");
-                            cell0.setAttribute("style", "border: none;");
-
-                            let cell1 = row.insertCell(1);
-                            cell1.appendChild(document.createTextNode(clique));
-                            cell1.setAttribute("value", "clique");
-                            cell1.setAttribute("valign", "middle");
-                            cell1.setAttribute("style", "border: none;");
-                            
-                            let cell2 = row.insertCell(2);
-                            cell2.appendChild(document.createTextNode(count.toString()));
-                            cell2.setAttribute("value", "count");
-                            cell2.setAttribute("style", "border: none;");
-                            cell2.setAttribute("valign", "middle");
-                        }
-                    }
-                    for (let col of ptable.getElementsByTagName('td')) {
-                        if (col.value == "cbox") {
-                            col.setAttribute("style", "width: 5%; word-wrap: break-all; border: none;");
-                        }
-                        if (col.value == "clique") {
-                            col.setAttribute("style", "width: 76.5%; word-wrap: break-all; border: none;");
-                        }
-                        if (col.value == "count") {
-                            col.setAttribute("style", "width: 18.5%; word-wrap: break-all; border: none;");
-                        }
-                    }
-                } else {
-                    var pathway_ids = set_pathwaylist(userfile, result.pathway_list, structure_options);
-
-                    for (let m of structure_options) {
-                        if (!(m in result.pathway_list)) {
+                    for (i = 0; i < result.pathway_list[m].length; i++) { 
+                        if (pathway_ids[m][i] === null) {
                             continue;
                         }
+                        pathwayid_pathwayname[pathway_ids[m][i]] = result.pathway_list[m][i];
+                        pathway_data[pathway_ids[m][i]] = result.pathway_data[m][result.pathway_list[m][i]];
+                        var nodes = pathway_data[pathway_ids[m][i]].nodes;
+                        var edges = pathway_data[pathway_ids[m][i]].edges;
 
-                        for (i = 0; i < result.pathway_list[m].length; i++) { 
-                            if (pathway_ids[m][i] === null) {
-                                continue;
+                        for (j = 0; j < nodes.length; j++) {
+                            // add metabolite to metabolite pathway dict
+                            if (metabolites_to_pathways[nodes[j].data["displayName"]] == null){
+                                metabolites_to_pathways[nodes[j].data["displayName"]] = [];
                             }
-                            pathwayid_pathwayname[pathway_ids[m][i]] = result.pathway_list[m][i];
-                            pathway_data[pathway_ids[m][i]] = result.pathway_data[m][result.pathway_list[m][i]];
-                            var nodes = pathway_data[pathway_ids[m][i]].nodes;
-                            var edges = pathway_data[pathway_ids[m][i]].edges;
+                            metabolites_to_pathways[nodes[j].data["displayName"]].push(pathway_ids[m][i]);
+                            // add tag to node id so that we can keep searches separate
+                            nodes[j].data["js_pathway_id"] = pathway_ids[m][i];
+                            // add metabolite name to our selection list
+                            pathway_metabolites.add(nodes[j].data["displayName"]);   
+                            // add specific pathway id into node ids
+                            var node_id = nodes[j].data["id"].toString();
+                            nodes[j].data["id"] = node_id.concat('_').concat(pathway_ids[m][i]);
+                            nodes[j].data["parent"] = pathway_ids[m][i];
+                            nodes[j].data["class"] = "Metabolite";                            
+                        }
 
-                            for (j = 0; j < nodes.length; j++) {
-                                // add metabolite to metabolite pathway dict
-                                if (metabolites_to_pathways[nodes[j].data["displayName"]] == null){
-                                    metabolites_to_pathways[nodes[j].data["displayName"]] = [];
-                                }
-                                metabolites_to_pathways[nodes[j].data["displayName"]].push(pathway_ids[m][i]);
-                                // add tag to node id so that we can keep searches separate
-                                nodes[j].data["js_pathway_id"] = pathway_ids[m][i];
-                                // add metabolite name to our selection list
-                                pathway_metabolites.add(nodes[j].data["displayName"]);   
-                                // add specific pathway id into node ids
-                                var node_id = nodes[j].data["id"].toString();
-                                nodes[j].data["id"] = node_id.concat('_').concat(pathway_ids[m][i]);
-                                nodes[j].data["parent"] = pathway_ids[m][i];
-                                nodes[j].data["class"] = "Metabolite";                            
-                            }
-
-                            for (j = 0; j < edges.length; j++) {
-                                edges[j].data["js_pathway_id"] = pathway_ids[m][i];
-                                // add specific pathway id into node ids
-                                var source_id = edges[j].data['source'].toString();
-                                var target_id = edges[j].data['target'].toString();
-                                edges[j].data['source'] = source_id.concat('_').concat(pathway_ids[m][i]);
-                                edges[j].data['target'] = target_id.concat('_').concat(pathway_ids[m][i]);
-                            }
+                        for (j = 0; j < edges.length; j++) {
+                            edges[j].data["js_pathway_id"] = pathway_ids[m][i];
+                            // add specific pathway id into node ids
+                            var source_id = edges[j].data['source'].toString();
+                            var target_id = edges[j].data['target'].toString();
+                            edges[j].data['source'] = source_id.concat('_').concat(pathway_ids[m][i]);
+                            edges[j].data['target'] = target_id.concat('_').concat(pathway_ids[m][i]);
                         }
                     }
+                }
 
-                    var met_menu = document.getElementById("metabolite_filter");
-                    
-                    for (i = met_menu.options.length - 1; i >= 1; i--) {
-                        met_menu.remove(i);
-                    }
+                var met_menu = document.getElementById("metabolite_filter");
+                
+                for (i = met_menu.options.length - 1; i >= 1; i--) {
+                    met_menu.remove(i);
+                }
 
-                    var metabolitelist = Array.from(pathway_metabolites)
-                    metabolitelist.sort(function (a, b) {return a.toLowerCase().localeCompare(b.toLowerCase());});
-                    for (let item of metabolitelist) {
-                        let option = document.createElement("option");
-                        option.text = item; // metabolite name
-                        met_menu.add(option);
-                    }
-                } 
-            }
-        
-            document.getElementById("loader").style.display = "none";
+                var metabolitelist = Array.from(pathway_metabolites)
+                metabolitelist.sort(function (a, b) {return a.toLowerCase().localeCompare(b.toLowerCase());});
+                for (let item of metabolitelist) {
+                    let option = document.createElement("option");
+                    option.text = item; // metabolite name
+                    met_menu.add(option);
+                }
+            } 
+        document.getElementById("loader").style.display = "none";
         }
         oReq.send(params);
     } else {
@@ -523,7 +439,7 @@ function setup_cy(container_id) {
                                 let svg = ele.data()['SVG']; //.split('\n'); // most molecules have SVG stored
                                 //console.log(svg)
                                 var stats = ele.data()[node_labels].concat('<br/>').concat(svg);                 
-                                for (let key of ['Metabolite Matches', 'Fold Change', 'P-Value', 'databaseName', 'name', 'displayName', 'CHEBI_ID', 'COLMARm', 'HMDB_ID', 'SMILES_2D', 'SMILES_3D', 'formula', 'labels', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4', 'spinsystems', 'nodes', 'url']) {
+                                for (let key of ['Metabolite Matches', 'Fold Change', 'P-Value', 'databaseName', 'name', 'displayName', 'CHEBI', 'COLMAR', 'HMDB', 'SMILES_2D', 'SMILES_3D', 'formula', 'labels', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4', 'spinsystems', 'nodes', 'url']) {
                                     if (ele.data()[key]) {       
                                         if (key == 'url') {
                                             var value = key.concat(': <a href="').concat(ele.data()[key]).concat('" target="_blank">').concat(ele.data()[key]).concat('</a>')
