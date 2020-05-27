@@ -72,17 +72,15 @@ try:
             fold_changes.extend([fold_change])
             p_values.extend([p_value])
 
-            start = time.time()
             colmar_matches = db.run('MATCH (m:metabolites) WHERE m.COLMARm = "'+metabolite+'" OR m.COLMARm = "'+metabolite+'_1" OR m.COLMARm = "'+metabolite+'_2" OR m.Name = "'+metabolite+'" OR m.isoName = "'+metabolite+'" RETURN m.COLMARm').value()
             metabolites[metabolite] = {'metabolites': colmar_matches, 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': metabolite}
             
             for opt in [o for o in structure_opts if o != 'metabolites']:
                 metabolites[metabolite][opt] = set()
                 for match in colmar_matches:
-                    for s in list(set(db.run('MATCH (m:metabolites)--(M:'+opt+') WHERE m.COLMARm = "'+match+'" RETURN M.SMILES').value())):
+                    for s in list(set(db.run('MATCH (m:metabolites)-[*..2]-(M:'+opt+') WHERE m.COLMARm = "'+match+'" RETURN M.SMILES').value())):
                         metabolites[metabolite][opt].add(s)
 
-    #print(time.time()-start)
     # Step 3: Search for pathways that contain matching metabolites, motifs, and/or sub-motifs
     pathway_search = {'metabolites': {}, 'pathways': {}, 'pathways_to_return': {}, 'pathway_graphs': {}}
     pathway_results = {'pathway_data': {}, 'pathway_list': {}, 'pathway_cliques': {}, 'structure_options': structure_opts}
@@ -156,12 +154,8 @@ try:
             for pathway in pathway_search['pathways_to_return'][opt]:
                 pathway_search['pathway_graphs'][opt][pathway] = [{}, [], {}, []] # nodedict, nodes, edges
                 G = pathway_search['pathway_graphs'][opt][pathway]
-                #start = time.time()
 
                 result = db.run('MATCH (m:Metabolite)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway {SMPDB_ID: "'+pathway+'"}) RETURN ([[x in keys(m) WHERE not x in ["SMPDB_ID"]| [x, m[x] ] ], type(er), r, he, p])').value()
-                #print(time.time()-start)
-                #print('MATCH (m:Metabolite)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway) WHERE p.SMPDB_ID = "'+pathway+'" RETURN ([m, type(er), r, he, p])')
-                #exit()
                 reactions = {} # reaction to set of metabolite, input/output pairs
                 pathway_name = pathway
                 for (M, er, r, he, p) in result: # iterate thru results
