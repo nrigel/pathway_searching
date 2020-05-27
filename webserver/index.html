@@ -146,14 +146,6 @@
         <a href="http://osu.edu" id="logo_osu" > <img src="http://spin.ccic.osu.edu//img/osu.jpg" alt="Home"></a>
         </div>
 
-<!--
-<div style="clear: both"></div>
-<div>
-    <h1>
-        <font color="red">This server will be off line from 11:30 AM (Eastern Time DST), Sep. 26th, 2016 for about 1 hour for hardware replacement. </font>
-    </h1>
-</div>
--->
     </div>
     
     <div id="menu">
@@ -225,7 +217,7 @@
         </p>Minimum number of metabolites per pathway: <input type="text" id="cutoff_count" name="cutoff_count" value="4" size="5">&nbsp;
         <br>Maximum number of pathways per metabolite clique: <input type="text" id="clique_cutoff" name="clique_cutoff" value="25" size="5">&nbsp;
         <br>
-        <p>Number of pathways: </p><p id="number_of_pathways"></p>
+        <p>Metabolite Cliques: </p><p id="number_of_pathways"></p>
         
         <input type="checkbox" name="search_opt" value="true" id="search_opt" style="display: none;" checked>
         <center><table id="clique_table" style="display: block; width: 90%; height: 100px; overflow-y: scroll;  table-layout:fixed; border-left: 0px solid; border-right: 0px solid;">
@@ -296,10 +288,10 @@
           <button onclick = "set_nodecolor()">Set color</button>
           <br>Set color (based on fold change by default)<br>
           <ul id="usercolorlist" style="list-style: none;"></ul>
+          <button id="clear_pathwaylist" style="width: 50%;" onclick="clear_pathwaylist()">Clear Pathway List</button>
           </center>
-          
           <ol id="pathway_list" style="list-style-type: none; padding-left: 5px; overflow: scroll;"></ol>
-          <center><button id="clear_pathwaylist" style="width: 50%; bottom: 1%;" onclick="clear_pathwaylist()">Clear Pathway List</button></center>
+          
         </div>
 
         <div id="cy" class="topclass" style="width: 76%; height: 800px; overflow: hidden;">

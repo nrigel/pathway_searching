@@ -89,7 +89,7 @@ try:
     pathway_cliques = {'structure_options': structure_opts}
     
     with PathBank._driver.session() as db:
-        pathway_species = {p[0]: p[1] for p in db.run('MATCH (p:Pathway) RETURN ([p.SMPDB_ID, p.Species])').value()}
+        #pathway_species = 
         # iterate thru all options given in the form
         for opt in structure_opts:
             pathwaylist = [] # save pathway names in order of most to least matching metabolites
@@ -101,8 +101,8 @@ try:
             pathway_results['pathway_data'][opt] = {}
             pathway_cliques[opt] = {'keys': [], 'values': [], 'clique_pathways': {}}
 
-            #print('metabolite matching started', time.time()-start)
-            #print('\tMatching',len(metabolites),'metabolites')
+            print('metabolite matching started', time.time()-start)
+            print('\tMatching',len(metabolites),'metabolites')
             for metabolite in metabolites: # iterate thru user inputted metabolites
                 for s in metabolites[metabolite][opt]: # iterate thru structure options
                     if opt == 'metabolites':
@@ -111,19 +111,16 @@ try:
                         key = opt
                     #print('MATCH (m:COLMARm)<-[:hasMetabolite]-(p:Pathway) WHERE "'+s+'" IN m.'+key+' AND p.Species = "'+species+'" RETURN ([m.PW_ID, p.SMPDB_ID])')
                     #for (m, p) in db.run('MATCH (m:COLMARm)<-[:hasMetabolite]-(p:Pathway) WHERE "'+s+'" IN m.'+key+' AND p.Species = "'+species+'" RETURN ([m.PW_ID, p.SMPDB_ID])').value():
-                    for (m, plist) in db.run('MATCH (m:COLMARm) WHERE "'+s+'" IN m.'+key+' RETURN ([m.PW_ID, m.SMPDB_ID])').value():
-                        for p in plist:
-                            if p not in pathway_species or pathway_species[p] != species:
-                                continue
-                            # m = reactome metabolite, r = reaction, p = pathway
-                            # keep m to metabolite alias
-                            if m not in pathway_search['metabolites'][opt]:
-                                pathway_search['metabolites'][opt][m] = set()
-                            pathway_search['metabolites'][opt][m].add(metabolite) # metabolite matches are returned later
-                            # add metabolite to pathway dict set to keep track of occurences
-                            if p not in pathway_search['pathways'][opt]:
-                                pathway_search['pathways'][opt][p] = set() # metabolite list
-                            pathway_search['pathways'][opt][p].add(metabolite)
+                    for (m, p) in db.run('MATCH (m:COLMARm) WHERE "'+s+'" IN m.'+key+' RETURN ([m.PW_ID, m.SMPDB_ID])').value():
+                        # m = reactome metabolite, r = reaction, p = pathway
+                        # keep m to metabolite alias
+                        if m not in pathway_search['metabolites'][opt]:
+                            pathway_search['metabolites'][opt][m] = set()
+                        pathway_search['metabolites'][opt][m].add(metabolite) # metabolite matches are returned later
+                        # add metabolite to pathway dict set to keep track of occurences
+                        if p not in pathway_search['pathways'][opt]:
+                            pathway_search['pathways'][opt][p] = set() # metabolite list
+                        pathway_search['pathways'][opt][p].add(metabolite)
 
             # get pathways to return as result
             for pathway in pathway_search['pathways'][opt]:
@@ -149,7 +146,7 @@ try:
                     pathway_search['pathways_to_return'][opt].extend([pathway])
             del pathway_cliques[opt]['clique_pathways'] # have to do this because you cannot JSON dump a dict with tuple keys
             
-            #print('metabolite matching finished', time.time()-start)
+            print('metabolite matching finished', time.time()-start)
             
             if prelim:
                 continue
@@ -160,34 +157,28 @@ try:
                 G = pathway_search['pathway_graphs'][opt][pathway]
                 #start = time.time()
 
-                result = db.run('MATCH (m:Metabolite)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway {SMPDB_ID: "'+pathway+'"}) RETURN ([[x in keys(m) WHERE not x in ["SMPDB_ID"]| [x, m[x] ] ], type(er), r, he, p])').value()
-                #print(time.time()-start)
+                result = db.run('MATCH (m:Metabolite)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway) WHERE p.SMPDB_ID = "'+pathway+'" RETURN ([m, type(er), r, he, p])').value()
+                print(time.time()-start)
+                exit()
                 #print('MATCH (m:Metabolite)-[er]-(r:Reaction)-[he:hasEvent]-(p:Pathway) WHERE p.SMPDB_ID = "'+pathway+'" RETURN ([m, type(er), r, he, p])')
-                #exit()
+
                 reactions = {} # reaction to set of metabolite, input/output pairs
                 pathway_name = pathway
-                for (M, er, r, he, p) in result: # iterate thru results
-                    m = {i[0]: i[1] for i in M}
+                for (m, er, r, he, p) in result: # iterate thru results
                     if p['Pathway_Name']:
                         pathway_name = p['Pathway_Name'] # save pathway stuff as the name instead of the id
-                    if 'PW_ID' in m:
-                        m_ID = m['PW_ID']
-                    else:
-                        m_ID = m['Biopax_ID']
-                    if m_ID not in G[0]: # add node to G with all of the Reactome info
+                    if m['PW_ID'] not in G[0]: # add node to G with all of the Reactome info
                         node_dict = dict(m) # convert reactome node object to dict
-                        node_dict['id'] = m_ID # need this for cy plot or it will make up its own
+                        node_dict['id'] = m['PW_ID'] # need this for cy plot or it will make up its own
                         node_dict['type'] = 'Metabolite' # need this for cy options later in the js
-                        if 'Metabolite_Name' in m:
-                            node_dict['displayName'] = m['Metabolite_Name']
-
+                        node_dict['displayName'] = m['Metabolite_Name']
                         if 'COLMARm' not in node_dict:
                             node_dict['COLMARm'] = []
                         
-                        if m_ID in pathway_search['metabolites'][opt]: # means that we can add in user submitted data, such as fold change, p-value 
+                        if str(m['PW_ID']) in pathway_search['metabolites'][opt]: # means that we can add in user submitted data, such as fold change, p-value 
                             # figure this out later
-                            colmar = list(pathway_search['metabolites'][opt][m_ID])[0]
-                            node_dict['Metabolite Matches'] = list(pathway_search['metabolites'][opt][m_ID]) # save this to show later
+                            colmar = list(pathway_search['metabolites'][opt][str(m['PW_ID'])])[0]
+                            node_dict['Metabolite Matches'] = list(pathway_search['metabolites'][opt][str(m['PW_ID'])]) # save this to show later
                             node_dict['Fold Change'], node_dict['P-Value'] = metabolites[colmar]['Fold Change'], metabolites[colmar]['P-Value']
                             # fold change determines color selected from gradient
                             if max(fold_changes) != min(fold_changes):
@@ -214,7 +205,7 @@ try:
                         else:
                             node_dict['shape'] = node_format[0]['shape']
                         
-                        G[0][m_ID] = node_dict
+                        G[0][m['PW_ID']] = node_dict
                         G[1].extend([{'data': node_dict, 'group': 'nodes'}])
 
                     if r['Biopax_ID'] not in reactions: # keep reaction info
@@ -222,7 +213,7 @@ try:
                         rdict['displayName'] = r['displayName']
                         rdict['stoichiometry'], rdict['order'] = he['stoichiometry'], he['order']
                         reactions[r['Biopax_ID']] = {'metabolites': set(), 'node': rdict} # save node object to return to js
-                    reactions[r['Biopax_ID']]['metabolites'].add((m_ID, er))
+                    reactions[r['Biopax_ID']]['metabolites'].add((m['PW_ID'], er))
 
                 for r in reactions: # iterate thru reactions
                     for (m, er) in reactions[r]['metabolites']:
@@ -248,7 +239,7 @@ try:
                 pathway_results['pathway_data'][opt][pathway_name] = {'nodes': G[1], 'edges': G[3]}
 
             # save pathway list to results dict
-            pathway_results['pathway_list'][opt] = [p[0] for p in sorted(pathwaylist, key=lambda x: (-x[1], x[0]))]
+            pathway_results['pathway_list'][opt] = [p[0] for p in sorted(pathwaylist, key=lambda x: -x[1])]
     #exit()
     if prelim:
         for opt in pathway_cliques['structure_options']:

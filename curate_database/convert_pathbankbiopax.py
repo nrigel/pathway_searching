@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 import networkx as nx
-import csv, json, os, traceback, types
+import csv, json, os, traceback, types, pickle
 from neo4j import GraphDatabase
 import openbabel, pybel, chemstructure
 
@@ -68,7 +68,6 @@ class PathBankDB_Builder(object):
                     ID = row[pathbank_datadict[node]['id_index']]
                     nodeset[node].add(ID)
                     write_row = row
-
                     if node != 'Pathway':
                         pathway_species[row[0]] = row[pathbank_datadict[node]['species_index']]
                     else:
@@ -86,8 +85,10 @@ class PathBankDB_Builder(object):
                         write_row.insert(-2, gene_seq)
                         write_row.insert(-2, protein_seq)
                     
-                    
-                    write_row = [json.dumps(r.replace('"', '')) for r in write_row]
+                    if node != 'Pathway':
+                        write_row = [[row[0]]]+[json.dumps(r.replace('"', '')) for r in write_row[1:]]
+                    else:
+                        write_row = [json.dumps(r.replace('"', '')) for r in write_row]
 
                     if node == 'Metabolite':
                         motiflist = {}
@@ -108,12 +109,16 @@ class PathBankDB_Builder(object):
                         else:
                             write_row.extend([json.dumps('')])
                             write_row.extend([json.dumps(node)])
+                        SVG = ''
+                        if ID in pathbank_datadict[node]['SVGs']:
+                            SVG = pathbank_datadict[node]['SVGs'][ID]
+                        write_row.insert(-2, SVG)
 
                     if node != 'Metabolite':
                         write_row.extend([json.dumps(node)])
                     
-                    write_row = ','.join(write_row)+'\n'
                     if node == 'Pathway':
+                        write_row = ','.join(write_row)+'\n'
                         csvout.write(write_row)
                     else:
                         if node == 'Protein':
@@ -123,15 +128,25 @@ class PathBankDB_Builder(object):
                                 M = len([i for i in desc[ID] if i == ''])
                                 if m < M:
                                     desc[ID] = d
-                                    node_data[node][ID] = write_row
+                                    old_row = node_data[node][ID]
+                                    old_row[0].extend([row[0]])
+                                    node_data[node][ID] = [old_row[0]]+write_row[1:]
+                                else:
+                                    node_data[node][ID][0].extend([row[0]])
                             else:
                                 desc[ID] = d
                                 node_data[node][ID] = write_row
                         else:
-                            node_data[node][ID] = write_row
+                            if ID not in node_data[node]:
+                                node_data[node][ID] = write_row
+                            else:
+                                node_data[node][ID][0].extend([row[0]])
+                
                 if node != 'Pathway':
                     for ID in node_data[node]:
-                        csvout.write(node_data[node][ID])
+                        node_data[node][ID][0] = json.dumps(';'.join(node_data[node][ID][0]))
+                        #print(node_data[node][ID])
+                        csvout.write(','.join(node_data[node][ID])+'\n')
 
     def BiopaxLister(self, path):
         if path[-1] != '/':
@@ -411,14 +426,18 @@ class PathBankDB_Builder(object):
                 pathway_nodes.extend([node])
             else:
                 if g.nodes[node]['type'] == 'Metabolite':
-                    self.biopax_edges['else'].extend([[master_pathway, master_pathway, node, 'hasMetabolite']])
+                    #self.biopax_edges['else'].extend([[master_pathway, master_pathway, node, 'hasMetabolite']])
+                    pass
 
         pathway_nodes = {pathway_nodes[i]: file_id+'-'+master_pathway+'_'+str(i+1).zfill(len(str(len(pathway_nodes)+1))) for i in range(len(pathway_nodes))}
         for node in pathway_nodes:
             displayName = ''
             if 'displayName' in g.nodes[node]:
                 displayName = g.nodes[node]['displayName']
-            self.biopax_nodes.extend([[ pathway_nodes[node], master_pathway, node.replace('/', '-'), displayName, g.nodes[node]['type'] ]])
+            TYPE = g.nodes[node]['type']
+            if TYPE == 'Pathway':
+                TYPE = 'SubPathway'
+            self.biopax_nodes.extend([[ pathway_nodes[node], master_pathway, node.replace('/', '-'), displayName, TYPE ]])
 
         for edge in g.edges:
             node1, node2 = edge
@@ -685,13 +704,29 @@ class PathBankDB_Builder(object):
                     writer.writerow(write_list)
 
     def AddSVG(self, PathBank):
-        pass
+        with PathBank._driver.session() as db:
+            metabolites = db.run('MATCH (m:Metabolite) RETURN ([m.PW_ID, m.SMILES])').value()
+            metabolites = {m[0]: m[1] for m in metabolites if m[0] and m[1]}
+
+        import subprocess, pickle
+
+        with open('PathBank_SMILES.pkl', 'wb') as pkl:
+            pickle.dump(metabolites, pkl, 2)
+
+        subprocess.run('source ~/.bash_profile && conda activate base && python svg_drawer.py PathBank_SMILES.pkl && conda deactivate', shell=True)
+
+        with open('PathBank_SMILES_SVGs.pkl', 'rb') as pkl:
+            SVGs = pickle.load(pkl)
+
+        with PathBank._driver.session() as db:
+            for metabolite in SVGs:
+                db.run('MATCH (m:Metabolite {PW_ID: "'+metabolite+'"}) SET m.SVG = "'+SVGs[metabolite]+'"')
+
 
     def AddReactionLabel(self, PathBank):
         with PathBank._driver.session() as db:
             for node in ['BiochemicalReaction', 'TransportWithBiochemicalReaction', 'Transport', 'Interaction', 'MolecularInteraction']:
                 db.run('MATCH (n:'+node+') SET n :Reaction')
-
 
 class Neo4jServer(object):
     def __init__(self, dbsettings):
@@ -705,7 +740,7 @@ class Neo4jServer(object):
 
 DBbuilder = PathBankDB_Builder()
 
-CURATE = False
+CURATE = True
 if CURATE:
 
     # Read in sequences
@@ -716,16 +751,23 @@ if CURATE:
     metabolite_motifs = DBbuilder.MetaboliteDescReader('/Users/nickrigel/Documents/GitHub/pathway_searching/curate_database/pathbank_data/pathbank_motiflists.csv')
     metabolite_matches = DBbuilder.MetaboliteDescReader('/Users/nickrigel/Documents/GitHub/pathway_searching/curate_database/pathbank_data/pathbank_colmarm_matches.csv')
 
+    svgs = '/Users/nickrigel/Documents/GitHub/pathway_searching/curate_database/pathbank_data/PathBank_SMILES_SVGs.pkl'
+    with open(svgs, 'rb') as pkl:
+        SVGs = pickle.load(pkl)
+
     # Node writer
     pathbank_datadict = {'Pathway': {'CSV': 'pathbank_pathways.csv', 'id_index': 0, 'species_index': 4, 'header': ['SMPDB_ID:ID', 'PW_ID', 'Pathway_Name', 'Pathway_Subject', 'Species', 'Description', ':LABEL']},
-                    'Metabolite': {'metabolite_motifs': metabolite_motifs, 'metabolite_matches': metabolite_matches, 'CSV': 'pathbank_all_metabolites.csv', 'id_index': 4, 'species_index': 3, 'header': ['SMPDB_ID', 'Pathway_Name', 'Pathway_Subject', 'Species', 'PW_ID:ID', 'Metabolite_Name', 'HMDB_ID', 'KEGG_ID', 'ChEBI_ID', 'DrugBank_ID', 'CAS', 'Formula', 'IUPAC', 'SMILES', 'InChI', 'InChIKey', 'spinsystems:string[]', 'motif_0:string[]', 'motif_1:string[]', 'motif_2:string[]', 'submotif_1:string[]', 'submotif_2:string[]', 'submotif_3:string[]', 'submotif_4:string[]', 'COLMARm:string[]', ':LABEL']},
-                    'Protein': {'CSV': 'pathbank_all_proteins.csv', 'id_index': 4, 'species_index': 3, 'header': ['SMPDB_ID', 'Pathway_Name', 'Pathway_Subject', 'Species', 'Uniprot_ID:ID', 'Protein_Name', 'HMDBP_ID', 'DrugBank_ID', 'GenBank_ID', 'Gene_Name', 'Locus', 'Gene_Sequence', 'Protein_Sequence', ':LABEL']}}
+                    'Metabolite': {'metabolite_motifs': metabolite_motifs, 'metabolite_matches': metabolite_matches, 'SVGs': SVGs, 'CSV': 'pathbank_all_metabolites.csv', 'id_index': 4, 'species_index': 3, 'header': ['SMPDB_ID:string[]', 'Pathway_Name', 'Pathway_Subject', 'Species', 'PW_ID:ID', 'Metabolite_Name', 'HMDB_ID', 'KEGG_ID', 'ChEBI_ID', 'DrugBank_ID', 'CAS', 'Formula', 'IUPAC', 'SMILES', 'InChI', 'InChIKey', 'spinsystems:string[]', 'motif_0:string[]', 'motif_1:string[]', 'motif_2:string[]', 'submotif_1:string[]', 'submotif_2:string[]', 'submotif_3:string[]', 'submotif_4:string[]', 'COLMARm:string[]', 'SVG', ':LABEL']},
+                    'Protein': {'CSV': 'pathbank_all_proteins.csv', 'id_index': 4, 'species_index': 3, 'header': ['SMPDB_ID:string[]', 'Pathway_Name', 'Pathway_Subject', 'Species', 'Uniprot_ID:ID', 'Protein_Name', 'HMDBP_ID', 'DrugBank_ID', 'GenBank_ID', 'Gene_Name', 'Locus', 'Gene_Sequence', 'Protein_Sequence', ':LABEL']}}
     DBbuilder.NodeWriter(pathbank_datadict, path='pathbank_data/')
 
     DBbuilder.Neo4j_Command(neo4j_admin_path='/Applications/neo4j-community-3.5.14_pathbank/')
+ 
     exit()
-    # List Biopax files
-    biopax_list = DBbuilder.BiopaxLister(path='pathbank_data/pathbank_all_biopax/')
+
+    # List Biopax files 
+    biopax_list = []
+    #biopax_list = DBbuilder.BiopaxLister(path='pathbank_data/pathbank_all_biopax/')
 
     # Parse Biopax files
     for f in range(len(biopax_list)): #['PW002044.owl']
@@ -740,7 +782,8 @@ if CURATE:
             print(traceback.format_exc())
             print(f+1, biopax_list[f])
             exit()
-    DBbuilder.Neo4j_Command(neo4j_admin_path='/Applications/neo4j-community-3.5.14_pathbank/')
+
+    #DBbuilder.Neo4j_Command(neo4j_admin_path='/Applications/neo4j-community-3.5.14_pathbank/')
 
     # pathbank_gene.fasta -> uniprot to RNA sequence
     # pathbank_protein.fasta -> uniprot to amino acid sequence
@@ -749,7 +792,7 @@ if CURATE:
     # pathbank_pathways.csv -> pathway nodes
     # all_pathway_reactions -> reaction structures for each species
 
-PROCESS = True
+PROCESS = False
 if PROCESS:
     dbsettings = {'NMRT': {'port': '7687', 'user': 'neo4j', 'password': 'olivia05'},
                 'PathBank': {'port': '7690', 'user': 'neo4j', 'password': 'olivia05'}}
@@ -764,12 +807,16 @@ if PROCESS:
     #DBbuilder.AddMotifs(PathBank, path='pathbank_data/')
 
     # Add label to reaction-type nodes
-    DBbuilder.AddReactionLabel(PathBank)
+    #DBbuilder.AddReactionLabel(PathBank)
+
+    # Add SVGs
+    #DBbuilder.AddSVG(PathBank)
 
     # 255 Reactome matches -> 436 PathBank matches
 
 
 # Fix removal of slashes from SMILES in the node writer function
 
+#MATCH (n:Pathway) WHERE n.PW_ID is null SET n :SubPathway REMOVE n :Pathway to filter pathway list
 
 #/Applications/neo4j-community-3.5.14_pathbank/bin/neo4j-admin import  --nodes=pathbank_data/neo4j_nodes_Metabolite.csv --nodes=pathbank_data/neo4j_nodes_Protein.csv --nodes=pathbank_data/neo4j_nodes_Pathway.csv --nodes=pathbank_data/neo4j/neo4j_biopax_nodes.csv --relationships=pathbank_data/neo4j/neo4j_biopax_edges_else.csv --relationships=pathbank_data/neo4j/neo4j_biopax_edges_order.csv --relationships=pathbank_data/neo4j/neo4j_biopax_edges_stoichiometry.csv
