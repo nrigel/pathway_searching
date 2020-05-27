@@ -113,80 +113,85 @@ function query_database(flag){
         
         oReq.onload = function(oEvent) {
             if (oReq.status === 200) {
-                console.log(oReq.response);
-                var result = JSON.parse(oReq.response);
+                //console.log(typeof oReq.response);
+                try {
+                    var result = JSON.parse(oReq.response);
+                }
+                catch(err) {
+                    console.log(oReq.response);
+                }
                 
                 let structure_options = result.structure_options;
 
-                if (flag == 'preliminary') {
-                    clique_checkboxes = {}
-                    
-                    let ptable = document.getElementById("clique_table");
+                clique_checkboxes = {}
+                
+                let ptable = document.getElementById("clique_table");
 
-                    let clique_cutoff = parseInt(document.getElementById("clique_cutoff").value, 10);
-                    let pcount = document.getElementById("number_of_pathways");
-                    let cliques = {};
-                    
-                    for (let m of structure_options) {
-                        cliques[m] = {};
-                        for (i = 0; i < result[m]['keys'].length; i++) { 
-                            let clique = result[m]['keys'][i].slice(1).join(', ');
-                            cliques[m][clique] = result[m]['values'][i];
-                        }
+                let clique_cutoff = parseInt(document.getElementById("clique_cutoff").value, 10);
+                let pcount = document.getElementById("number_of_pathways");
+                let cliques = {};
+                
+                for (let m of structure_options) {
+                    cliques[m] = {};
+                    for (i = 0; i < result['pathway_cliques'][m]['keys'].length; i++) { 
+                        let clique = result['pathway_cliques'][m]['keys'][i].slice(1).join(', ');
+                        cliques[m][clique] = result['pathway_cliques'][m]['values'][i];
                     }
+                }
 
-                    for (let m of structure_options) {
-                        let header = ['<tbody><tr>',
-                                '<th style="width: 5%; word-wrap: break-all; border: none;">Select</th>',
-                                '<th style="width: 76.5%; word-wrap: break-all; border: none;">'.concat(structure_labels[m]).concat(' Clique</th>'),
-                                '<th style="width: 18.5%; word-wrap: break-all; border: none;">Pathway Count</th>',
-                                '</tr>',
-                                '</tbody>']
-                        ptable.innerHTML = header.join('\n');
+                for (let m of structure_options) {
+                    let header = ['<tbody><tr>',
+                            '<th style="width: 5%; word-wrap: break-all; border: none;">Select</th>',
+                            '<th style="width: 76.5%; word-wrap: break-all; border: none;">'.concat(structure_labels[m]).concat(' Clique</th>'),
+                            '<th style="width: 18.5%; word-wrap: break-all; border: none;">Pathway Count</th>',
+                            '</tr>',
+                            '</tbody>']
+                    ptable.innerHTML = header.join('\n');
 
-                        for (let [clique, count] of Object.entries(cliques[m])) {
-                            let row = ptable.insertRow(-1);
-                            let n = ptable.getElementsByTagName('td').length;
-                            
-                            let cell0 = row.insertCell(0);
-                            let cbox = document.createElement("input");
-                            cbox.setAttribute("type", "checkbox");
-                            cbox.setAttribute("name", "cbox".concat(n.toString()));
-                            cbox.setAttribute("value", m.concat(', ').concat(clique))
-                            cbox.checked = true;
-                            if (clique_cutoff < count) {
-                                cbox.checked = false;
-                            }
-                            cell0.appendChild(cbox);
-                            cell0.setAttribute("value", "cbox");
-                            cell0.setAttribute("valign", "middle");
-                            cell0.setAttribute("style", "border: none;");
-
-                            let cell1 = row.insertCell(1);
-                            cell1.appendChild(document.createTextNode(clique));
-                            cell1.setAttribute("value", "clique");
-                            cell1.setAttribute("valign", "middle");
-                            cell1.setAttribute("style", "border: none;");
-                            
-                            let cell2 = row.insertCell(2);
-                            cell2.appendChild(document.createTextNode(count.toString()));
-                            cell2.setAttribute("value", "count");
-                            cell2.setAttribute("style", "border: none;");
-                            cell2.setAttribute("valign", "middle");
+                    for (let [clique, count] of Object.entries(cliques[m])) {
+                        let row = ptable.insertRow(-1);
+                        let n = ptable.getElementsByTagName('td').length;
+                        
+                        let cell0 = row.insertCell(0);
+                        let cbox = document.createElement("input");
+                        cbox.setAttribute("type", "checkbox");
+                        cbox.setAttribute("name", "cbox".concat(n.toString()));
+                        cbox.setAttribute("value", m.concat(', ').concat(clique))
+                        cbox.checked = true;
+                        if (clique_cutoff < count) {
+                            cbox.checked = false;
                         }
+                        cell0.appendChild(cbox);
+                        cell0.setAttribute("value", "cbox");
+                        cell0.setAttribute("valign", "middle");
+                        cell0.setAttribute("style", "border: none;");
+
+                        let cell1 = row.insertCell(1);
+                        cell1.appendChild(document.createTextNode(clique));
+                        cell1.setAttribute("value", "clique");
+                        cell1.setAttribute("valign", "middle");
+                        cell1.setAttribute("style", "border: none;");
+                        
+                        let cell2 = row.insertCell(2);
+                        cell2.appendChild(document.createTextNode(count.toString()));
+                        cell2.setAttribute("value", "count");
+                        cell2.setAttribute("style", "border: none;");
+                        cell2.setAttribute("valign", "middle");
                     }
-                    for (let col of ptable.getElementsByTagName('td')) {
-                        if (col.value == "cbox") {
-                            col.setAttribute("style", "width: 5%; word-wrap: break-all; border: none;");
-                        }
-                        if (col.value == "clique") {
-                            col.setAttribute("style", "width: 76.5%; word-wrap: break-all; border: none;");
-                        }
-                        if (col.value == "count") {
-                            col.setAttribute("style", "width: 18.5%; word-wrap: break-all; border: none;");
-                        }
+                }
+                for (let col of ptable.getElementsByTagName('td')) {
+                    if (col.value == "cbox") {
+                        col.setAttribute("style", "width: 5%; word-wrap: break-all; border: none;");
                     }
-                } else {
+                    if (col.value == "clique") {
+                        col.setAttribute("style", "width: 76.5%; word-wrap: break-all; border: none;");
+                    }
+                    if (col.value == "count") {
+                        col.setAttribute("style", "width: 18.5%; word-wrap: break-all; border: none;");
+                    }
+                }
+            
+                if (flag != 'preliminary') {
                     var pathway_ids = set_pathwaylist(userfile, result.pathway_list, structure_options);
 
                     for (let m of structure_options) {

@@ -719,9 +719,10 @@ class PathBankDB_Builder(object):
             SVGs = pickle.load(pkl)
 
         with PathBank._driver.session() as db:
+            metabolites = [m for m in db.run('MATCH (m:Metabolite) WHERE NOT m.SMILES is null AND m.SVG is null RETURN m.PW_ID').value()] 
+            print(len(metabolites), len([m for m in metabolites if m in SVGs]))
             for metabolite in SVGs:
                 db.run('MATCH (m:Metabolite {PW_ID: "'+metabolite+'"}) SET m.SVG = "'+SVGs[metabolite]+'"')
-
 
     def AddReactionLabel(self, PathBank):
         with PathBank._driver.session() as db:
@@ -740,7 +741,7 @@ class Neo4jServer(object):
 
 DBbuilder = PathBankDB_Builder()
 
-CURATE = True
+CURATE = False
 if CURATE:
 
     # Read in sequences
@@ -792,7 +793,7 @@ if CURATE:
     # pathbank_pathways.csv -> pathway nodes
     # all_pathway_reactions -> reaction structures for each species
 
-PROCESS = False
+PROCESS = True
 if PROCESS:
     dbsettings = {'NMRT': {'port': '7687', 'user': 'neo4j', 'password': 'olivia05'},
                 'PathBank': {'port': '7690', 'user': 'neo4j', 'password': 'olivia05'}}
@@ -807,7 +808,7 @@ if PROCESS:
     #DBbuilder.AddMotifs(PathBank, path='pathbank_data/')
 
     # Add label to reaction-type nodes
-    #DBbuilder.AddReactionLabel(PathBank)
+    DBbuilder.AddReactionLabel(PathBank)
 
     # Add SVGs
     #DBbuilder.AddSVG(PathBank)

@@ -85,8 +85,7 @@ try:
     #print(time.time()-start)
     # Step 3: Search for pathways that contain matching metabolites, motifs, and/or sub-motifs
     pathway_search = {'metabolites': {}, 'pathways': {}, 'pathways_to_return': {}, 'pathway_graphs': {}}
-    pathway_results = {'pathway_data': {}, 'pathway_list': {}, 'structure_options': structure_opts}
-    pathway_cliques = {'structure_options': structure_opts}
+    pathway_results = {'pathway_data': {}, 'pathway_list': {}, 'pathway_cliques': {}, 'structure_options': structure_opts}
     
     with PathBank._driver.session() as db:
         pathway_species = {p[0]: p[1] for p in db.run('MATCH (p:Pathway) RETURN ([p.SMPDB_ID, p.Species])').value()}
@@ -99,18 +98,14 @@ try:
             pathway_search['pathways_to_return'][opt] = [] # pathways that are kept based on the count cutoff
             pathway_search['pathway_graphs'][opt] = {} # pathway to nx graphs that will contain the metabolites and reaction connectivity
             pathway_results['pathway_data'][opt] = {}
-            pathway_cliques[opt] = {'keys': [], 'values': [], 'clique_pathways': {}}
+            pathway_results['pathway_cliques'][opt] = {'keys': [], 'values': [], 'clique_pathways': {}}
 
-            #print('metabolite matching started', time.time()-start)
-            #print('\tMatching',len(metabolites),'metabolites')
             for metabolite in metabolites: # iterate thru user inputted metabolites
                 for s in metabolites[metabolite][opt]: # iterate thru structure options
                     if opt == 'metabolites':
                         key = 'COLMARm'
                     else:
                         key = opt
-                    #print('MATCH (m:COLMARm)<-[:hasMetabolite]-(p:Pathway) WHERE "'+s+'" IN m.'+key+' AND p.Species = "'+species+'" RETURN ([m.PW_ID, p.SMPDB_ID])')
-                    #for (m, p) in db.run('MATCH (m:COLMARm)<-[:hasMetabolite]-(p:Pathway) WHERE "'+s+'" IN m.'+key+' AND p.Species = "'+species+'" RETURN ([m.PW_ID, p.SMPDB_ID])').value():
                     for (m, plist) in db.run('MATCH (m:COLMARm) WHERE "'+s+'" IN m.'+key+' RETURN ([m.PW_ID, m.SMPDB_ID])').value():
                         for p in plist:
                             if p not in pathway_species or pathway_species[p] != species:
@@ -123,37 +118,40 @@ try:
                             # add metabolite to pathway dict set to keep track of occurences
                             if p not in pathway_search['pathways'][opt]:
                                 pathway_search['pathways'][opt][p] = set() # metabolite list
-                            pathway_search['pathways'][opt][p].add(metabolite)
+                            #pathway_search['pathways'][opt][p].add(metabolite)
+                            pathway_search['pathways'][opt][p].add(s)
 
             # get pathways to return as result
             for pathway in pathway_search['pathways'][opt]:
                 metcount = len(pathway_search['pathways'][opt][pathway])
                 if metcount >= int(count_cutoff):
                     mets = tuple([opt]+sorted([m for m in pathway_search['pathways'][opt][pathway]], key=lambda x: x))
-                    if mets not in pathway_cliques[opt]['clique_pathways']:
-                        pathway_cliques[opt]['clique_pathways'][mets] = set()
-                    pathway_cliques[opt]['clique_pathways'][mets].add(pathway)
+                    if mets not in pathway_results['pathway_cliques'][opt]['clique_pathways']:
+                        pathway_results['pathway_cliques'][opt]['clique_pathways'][mets] = set()
+                    pathway_results['pathway_cliques'][opt]['clique_pathways'][mets].add(pathway)
 
             for pathway in pathway_search['pathways'][opt]:    
                 metcount = len(pathway_search['pathways'][opt][pathway])
                 if metcount >= int(count_cutoff):
                     mets = tuple([opt]+sorted([m for m in pathway_search['pathways'][opt][pathway]], key=lambda x: x))
-                    pathcount = len(pathway_cliques[opt]['clique_pathways'][mets])
-                    if mets not in pathway_cliques[opt]['keys']:
-                        pathway_cliques[opt]['keys'].extend([mets])
-                        pathway_cliques[opt]['values'].extend([pathcount])
+                    pathcount = len(pathway_results['pathway_cliques'][opt]['clique_pathways'][mets])
+                    if mets not in pathway_results['pathway_cliques'][opt]['keys']:
+                        pathway_results['pathway_cliques'][opt]['keys'].extend([mets])
+                        pathway_results['pathway_cliques'][opt]['values'].extend([pathcount])
                     if len(cliques) == 0 and pathcount > int(clique_cutoff): # cutoff given in form (need to change to dict instead)
                         continue
                     if len(cliques) > 0 and mets not in cliques:
                         continue
                     pathway_search['pathways_to_return'][opt].extend([pathway])
-            del pathway_cliques[opt]['clique_pathways'] # have to do this because you cannot JSON dump a dict with tuple keys
+            del pathway_results['pathway_cliques'][opt]['clique_pathways'] # have to do this because you cannot JSON dump a dict with tuple keys
             
             #print('metabolite matching finished', time.time()-start)
             
             if prelim:
                 continue
             
+            reaction_labels = ['BiochemicalReaction', 'Interaction', 'MolecularInteraction', 'Transport', 'TransportWithBiochemicalReaction']
+
             # iterate thru pathways that meet the cutoffs
             for pathway in pathway_search['pathways_to_return'][opt]:
                 pathway_search['pathway_graphs'][opt][pathway] = [{}, [], {}, []] # nodedict, nodes, edges
@@ -249,19 +247,16 @@ try:
 
             # save pathway list to results dict
             pathway_results['pathway_list'][opt] = [p[0] for p in sorted(pathwaylist, key=lambda x: (-x[1], x[0]))]
-    #exit()
-    if prelim:
-        for opt in pathway_cliques['structure_options']:
-            indices = []
-            for clique in sorted(pathway_cliques[opt]['keys'], key=lambda x: -pathway_cliques[opt]['values'][pathway_cliques[opt]['keys'].index(x)]):
-                n = pathway_cliques[opt]['keys'].index(clique)
-                indices.extend([n])
-            pathway_cliques[opt]['keys'] = [pathway_cliques[opt]['keys'][i] for i in indices]
-            pathway_cliques[opt]['values'] = [pathway_cliques[opt]['values'][i] for i in indices]
 
-        print(json.dumps(pathway_cliques))
-    else:
-        print(json.dumps(pathway_results)) # convert to JSON and print results back to js
+    for opt in pathway_results['structure_options']:
+        indices = []
+        for clique in sorted(pathway_results['pathway_cliques'][opt]['keys'], key=lambda x: -pathway_results['pathway_cliques'][opt]['values'][pathway_results['pathway_cliques'][opt]['keys'].index(x)]):
+            n = pathway_results['pathway_cliques'][opt]['keys'].index(clique)
+            indices.extend([n])
+        pathway_results['pathway_cliques'][opt]['keys'] = [pathway_results['pathway_cliques'][opt]['keys'][i] for i in indices]
+        pathway_results['pathway_cliques'][opt]['values'] = [pathway_results['pathway_cliques'][opt]['values'][i] for i in indices]
+
+    print(json.dumps(pathway_results)) # convert to JSON and print results back to js
     
     PathBank.close()
     NMRT.close()
