@@ -136,3 +136,4 @@ dmypy.json
 .DS_Store
 curate_database/PathBank_SMILES_SVGs.pkl
 curate_database/PathBank_SMILES.pkl
+.DS_Store
