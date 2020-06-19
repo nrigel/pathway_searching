@@ -4,8 +4,7 @@
 # Python 3.6.10 :: Anaconda, Inc.#!/opt/anaconda2/envs/P3/bin/python
 
 print("Content-type:text/html\r\n\r\n") # print HTML header
-print('opened')
-exit()
+
 # Set up Neo4j connections
 # set parameters for Bolt port, user, and password
 node_format = [{'size': 30, 'color': ['#E50002', '#E02C00', '#DC5900', '#D88500', '#D4AF00', '#C8CF00', '#99CB00', '#6CC700', '#41C300', '#18BF00'], 'shape': 'ellipse'}, 
