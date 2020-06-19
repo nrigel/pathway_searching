@@ -1,3 +1,4 @@
+#!/Users/nick/Documents/GitHub/motif_builder/py35env/bin/python
 #!/opt/anaconda2/envs/P3/bin/python
 #!/usr/bin/env python3
 # Python 3.6.10 :: Anaconda, Inc.#!/opt/anaconda2/envs/P3/bin/python
