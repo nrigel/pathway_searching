@@ -15,6 +15,7 @@ from neo4j_connect import Neo4jServer
 
 NMRT, PathBank = Neo4jServer('NMRT'), Neo4jServer('PathBank')
 
+from session_save import SaveSession
 import cgi, cgitb, math, json, csv, traceback, time, io
 start = time.time()
 # Step 1: Organize data from HTML form
@@ -30,19 +31,22 @@ prelim = False
 if form.getvalue("search_opt") == 'true':
     prelim = True
 
-datafile = form['userfile'].file
+saveinfo = json.loads(form.getvalue('saveinfo'))
+cached_results = json.loads(form.getvalue('cached_results'))
+inputOptions = cached_results['inputOptions']
+
 structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4'] if form.getvalue(o)]
 species = form.getvalue('specieslist')
 count_cutoff = form.getvalue('cutoff_count') # change to dict of cutoffs for all structure opts
 clique_cutoff = form.getvalue('clique_cutoff')
 # Read in data file
-lines = []
-while True:
-    line = datafile.readline()
-    if not line:
-        break
-    lines.extend([line])
-data_set = [line.rstrip().decode('utf-8') for line in lines]
+if not cached_results['filedata']:
+    datafile = form['userfile'].file
+    data_set = [line.rstrip().decode('utf-8') for line in datafile.readlines()]
+else:
+    data_set = cached_results['filedata'].split('\n')
+
+inputted_file = {'data_set': data_set, 'filename': form['userfile'].filename}
 data_set = [row for row in csv.reader(data_set)]
 
 def isfloat(value):
@@ -243,13 +247,19 @@ try:
             # save pathway list to results dict
             pathway_results['pathway_list'][opt] = [p[0] for p in sorted(pathwaylist, key=lambda x: (-x[1], x[0]))]
 
-    for opt in pathway_results['structure_options']:
-        indices = []
-        for clique in sorted(pathway_results['pathway_cliques'][opt]['keys'], key=lambda x: -pathway_results['pathway_cliques'][opt]['values'][pathway_results['pathway_cliques'][opt]['keys'].index(x)]):
-            n = pathway_results['pathway_cliques'][opt]['keys'].index(clique)
-            indices.extend([n])
-        pathway_results['pathway_cliques'][opt]['keys'] = [pathway_results['pathway_cliques'][opt]['keys'][i] for i in indices]
-        pathway_results['pathway_cliques'][opt]['values'] = [pathway_results['pathway_cliques'][opt]['values'][i] for i in indices]
+        for opt in pathway_results['structure_options']:
+            indices = []
+            for clique in sorted(pathway_results['pathway_cliques'][opt]['keys'], key=lambda x: -pathway_results['pathway_cliques'][opt]['values'][pathway_results['pathway_cliques'][opt]['keys'].index(x)]):
+                n = pathway_results['pathway_cliques'][opt]['keys'].index(clique)
+                indices.extend([n])
+            pathway_results['pathway_cliques'][opt]['keys'] = [pathway_results['pathway_cliques'][opt]['keys'][i] for i in indices]
+            pathway_results['pathway_cliques'][opt]['values'] = [pathway_results['pathway_cliques'][opt]['values'][i] for i in indices]
+        
+        pathway_results['inputted_file'] = inputted_file # save user file for session loading later
+        pathway_results['inputOptions'] = cached_results['inputOptions'] # include our user input options in our save
+        pathway_results['saveinfo'] = SaveSession(db, pathway_results, saveinfo) # save here instead of making new request
+        
+
 
     print(json.dumps(pathway_results)) # convert to JSON and print results back to js
     

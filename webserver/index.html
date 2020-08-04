@@ -170,8 +170,29 @@
         
         <div id="step1" class="topclass" style="width: 48.5%; height: 420px">
           <strong>STEP1</strong>: Metabolite Submission<br>
-          <p>Your name and institute* <input type="text" name="username" value="" size="40"><br><br>
-          Metabolite File (CSV):  <input type="file" name="userfile" value="None" id="fileinput"><br><br>Example:
+          <p>Your name and institute* <input type="text" name="username" value="" size="40"></p>
+          <p id="fileinputp">Metabolite File (CSV):  
+            <!--
+            <input type="file" name="userfile" value="None" id="fileinput"></p><br>
+            -->
+            <input type="file" name="userfile" value="None" id="fileinput" style='display: none;'>
+            <script type="text/javascript">
+              document.getElementById("fileinput").addEventListener('change', function() {
+                let filepath = document.getElementById("fileinput").value.split('\\');
+                let filename = filepath.slice(filepath.length-1)
+                let label = document.getElementById("filename");
+                label.innerHTML = "";
+                label.appendChild(document.createTextNode(filename));
+                filedata = null;
+              });
+
+              function fileUpload() {
+                document.getElementById("fileinput").click();
+              }
+            </script>
+            <button onclick="fileUpload()">Choose File</button>
+            <label id="filename">No File Chosen...</label></p>
+          <p>Example:
           <center><table id="prev_table" style="width:75%"><tr><th>COLMAR ID or Name</th><th>P-Value</th><th>Fold Change</th></tr><tr><td>ATP</td><td>0.75</td><td>1.08</td></tr>
           <tr><td>bmse000191</td><td>0.60</td><td>1.39</td></tr></table></center><p><br></p></p>
         </div>
@@ -320,7 +341,16 @@
         </div>
         
         <div id="reporting" class="topclass" style="width: 48.5%; height: 240px; float: left;">
-          <strong>OPTIONAL</strong>: Load Session<br>
+          <center>
+            <strong>Session Options</strong><br>
+            <input id="session_data" name="session_data" value="" style="display: none;"></p>
+            <input id="session_exe" name="session_exe" value="" style="display: none;"></p>
+            <p id="session_status">Session has not been saved...</p>
+            <p><input id="savepoint_name" name="savepoint_name" style="width: 200px" placeholder="Save point name"> <button onclick = "session('save')">Save session</button></p> 
+            <p><input id="session_name" name="session_name" style="width: 200px" placeholder="Session ID"> <button onclick = "session('load')">Load session</button></p>
+            <p id="session_data" name="session_data" value="" style="display: none;"></p>
+            <p id="save_points"></p>
+          </center>
         </div>
       </div>
         

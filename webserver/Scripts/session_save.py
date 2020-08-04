@@ -20,24 +20,28 @@ def SaveSession(db, session_data, saveinfo):
         
         used_names = db.run('MATCH (n:Sessions) RETURN n.Name').value()
         saveinfo['session_id'] = str(len(used_names)+1).zfill(4)+'-'+''.join(choice(ascii_uppercase) for i in range(10))
-        db.run('CREATE (n:Sessions {Name: "'+saveinfo['session_id']+'", saveStates: "{}", saveStateOrder: "[]"})') 
+        db.run('CREATE (n:Sessions {Name: "'+saveinfo['session_id']+'", saveStates: "{}", saveStateOrder: "[]", lastSave: "{}"})') 
 
-    saveStates, saveStateOrder = db.run('MATCH (n:Sessions {Name: "'+saveinfo['session_id']+'"}) RETURN ([n.saveStates, n.saveStateOrder])').value()[0]
-    saveStates, saveStateOrder = json.loads(saveStates), json.loads(saveStateOrder)
-    saveinfo['saveStateNames'] = {saveStates[key]: key for key in saveStates}
+    saveinfo['saveStates'], saveinfo['saveStateOrder'], saveinfo['lastSave'] = db.run('MATCH (n:Sessions {Name: "'+saveinfo['session_id']+'"}) RETURN ([n.saveStates, n.saveStateOrder, n.lastSave])').value()[0]
+    saveinfo['saveStates'], saveinfo['saveStateOrder'], saveinfo['lastSave'] = json.loads(saveinfo['saveStates']), json.loads(saveinfo['saveStateOrder']), json.loads(saveinfo['lastSave'])
+    saveinfo['saveStateNames'] = {saveinfo['saveStates'][key]: key for key in saveinfo['saveStates']}
 
     if saveinfo['savestate'] not in saveinfo['saveStateNames']:
         saveinfo['saveStateNames'][saveinfo['savestate']] = 'sp'+str(len(saveinfo['saveStateNames']))
-        saveStates[saveinfo['saveStateNames'][saveinfo['savestate']]] = saveinfo['savestate']
+        saveinfo['saveStates'][saveinfo['saveStateNames'][saveinfo['savestate']]] = saveinfo['savestate']
 
-    if saveinfo['saveStateNames'][saveinfo['savestate']] in saveStateOrder:
-        saveStateOrder.remove(saveinfo['saveStateNames'][saveinfo['savestate']])
+    if saveinfo['saveStateNames'][saveinfo['savestate']] in saveinfo['saveStateOrder']:
+        saveinfo['saveStateOrder'].remove(saveinfo['saveStateNames'][saveinfo['savestate']])
 
-    saveStateOrder.insert(0, saveinfo['saveStateNames'][saveinfo['savestate']])
+    saveinfo['saveStateOrder'].insert(0, saveinfo['saveStateNames'][saveinfo['savestate']])
+    saveinfo['lastSave'][saveinfo['savestate']] = getCurrentTime()
+    
+    # clean up our session data: remove any SVGs
+    for opt in session_data["pathway_data"]:
+        for pathway in session_data["pathway_data"][opt]:
+            for node in session_data["pathway_data"][opt][pathway]['nodes']:
+                node['data']['SVG'] = None
 
-    # clean up our session data: remove any SVG
-    print(json.dumps(session_data))
-
-    db.run('MATCH (n:Sessions {Name: "'+saveinfo['session_id']+'"}) SET n.'+saveinfo['saveStateNames'][saveinfo['savestate']]+' = '+json.dumps(json.dumps(session_data))+', n.saveStates = '+json.dumps(json.dumps(saveStates))+', n.saveStateOrder = '+json.dumps(json.dumps(saveStateOrder)))
+    db.run('MATCH (n:Sessions {Name: "'+saveinfo['session_id']+'"}) SET n.'+saveinfo['saveStateNames'][saveinfo['savestate']]+' = '+json.dumps(json.dumps(session_data))+', n.saveStates = '+json.dumps(json.dumps(saveinfo['saveStates']))+', n.saveStateOrder = '+json.dumps(json.dumps(saveinfo['saveStateOrder']))+', n.saveStateNames = '+json.dumps(json.dumps(saveinfo['saveStateNames']))+', n.lastSave = '+json.dumps(json.dumps(saveinfo['lastSave'])))
 
     return saveinfo

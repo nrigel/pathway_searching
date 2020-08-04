@@ -15,8 +15,38 @@ var cy_layout = "cose"; // layout option for cytoscape graphing
 var node_labels = "displayName"; // node attribute that is displayed on cytoscape graph
 var edge_labels = null;//"reaction"; // edge labels from Reactome
 var connect_pathways = true; // connect shared metabolites when multiple pathways are drawn
-var cached_results; // where we store our latest results dict
-var saveinfo = {"session_id": null, "savestate": null, "saveStateNames": null, "saveStateOrder": null, "save": false, "load": false}; // our save variables
+var cached_results = {}; // where we store our latest results dict
+var saveinfo = {"session_id": null, "savestate": null, "saveStateNames": null, "saveStateOrder": null, "save": false, "load": false, "lastSave": null}; // our save variables
+var filedata = null; // placeholder for loaded session file data
+
+function inputOptionStatus(flag) {
+    let checkboxes = ["metabolites", "motifs", "motif_0", "motif_1", "motif_2", "submotifs", "submotif_1", "submotif_2", "submotif_3", "submotif_4"];
+
+    if (flag == "read") {
+        cached_results["inputOptions"] = {};
+        for (let cb of checkboxes) {
+            let e = document.getElementById(cb);
+            cached_results["inputOptions"][cb] = e.checked;
+        }
+        cached_results["inputOptions"]["specieslist"] = document.getElementById("specieslist").selectedIndex;
+        for (let cb of ["cutoff_count", "clique_cutoff"]) {
+            cached_results["inputOptions"][cb] = document.getElementById(cb).value;
+        }
+    } else if (flag == "write") {
+        for (let cb of checkboxes) {
+            let e = document.getElementById(cb);
+            e.checked = cached_results["inputOptions"][cb];
+        }
+        document.getElementById("specieslist").selectedIndex = cached_results["inputOptions"]["specieslist"];
+        for (let cb of ["cutoff_count", "clique_cutoff"]) {
+            document.getElementById(cb).value = cached_results["inputOptions"][cb];
+        }
+    }
+}
+
+$( document ).ready(function (){
+    inputOptionStatus("read");
+})
 
 document.addEventListener('keydown', function(event) {
 
@@ -126,16 +156,21 @@ function query_database(flag){
         document.getElementById("search_opt").setAttribute("value", "false");
     }
 
+    saveinfo["savestate"] = document.getElementById("savepoint_name").value;
+    saveinfo["session_id"] = document.getElementById("session_name").value;
+
     var oReq = new XMLHttpRequest();
     var base_url = window.location.href;
 
     var params = new FormData(document.getElementById("process_load"));
+    cached_results["filedata"] = filedata;
     params.append("cached_results", JSON.stringify(cached_results));
     params.append("saveinfo", JSON.stringify(saveinfo));
+    inputOptionStatus("read");
 
-    var userfile = document.getElementById("fileinput").value
+    var userfile = document.getElementById("fileinput").value;
 
-    if (userfile) {
+    if (userfile || flag == "load" || filedata) {
         document.getElementById("loader").style.display = "block";
         
         let pyscript = 'Scripts/pathway_search.py';
@@ -148,7 +183,7 @@ function query_database(flag){
         oReq.setRequestHeader("Authorization", null);
         
         oReq.onload = function(oEvent) {
-            if (oReq.status === 200) {
+            executed: if (oReq.status === 200) {
                 //console.log(typeof oReq.response);
                 try {
                     var result = JSON.parse(oReq.response);
@@ -158,11 +193,18 @@ function query_database(flag){
                 }
                 catch(err) {
                     console.log(oReq.response);
+                    break executed;
                 }
                 
                 if (flag == "save") {
-                    return;
+                    break executed;
                 }
+
+                if (flag == "load") {
+                    session("loaded");
+                }
+
+                session("saved");
 
                 let structure_options = result.structure_options;
 
@@ -348,29 +390,32 @@ function set_pathwaylist(userfile, pathway_list, structure_options) {
         }
         pathway_ids[m] = {};
         let l = document.getElementById(m_id.concat("_div"));
-        for (i = 0; i < pathway_list[m].length; i++) { 
-            let pid = m_id.concat("_").concat(pathway_list[m][i])
-            if (!(pid in pathway_lists[id][m])) {  
-                var x = document.createElement("input");
-                x.setAttribute("type", "checkbox");
-                x.setAttribute("id", pid);
-                x.setAttribute("onclick", "check_change('".concat(pid).concat("')"));
-                
-                var label = document.createElement("label");
-                label.htmlFor = pid;
-                label.setAttribute("id", pid.concat("_label"));
-                label.appendChild(document.createTextNode(pathway_list[m][i]));
 
-                pathway_lists[id][m][pid] = [x, label];
+        if (pathway_list[m]) {
+            for (i = 0; i < pathway_list[m].length; i++) { 
+                let pid = m_id.concat("_").concat(pathway_list[m][i])
+                if (!(pid in pathway_lists[id][m])) {  
+                    var x = document.createElement("input");
+                    x.setAttribute("type", "checkbox");
+                    x.setAttribute("id", pid);
+                    x.setAttribute("onclick", "check_change('".concat(pid).concat("')"));
+                    
+                    var label = document.createElement("label");
+                    label.htmlFor = pid;
+                    label.setAttribute("id", pid.concat("_label"));
+                    label.appendChild(document.createTextNode(pathway_list[m][i]));
 
-                l.appendChild(x);
-                l.appendChild(label);
-                l.appendChild(document.createElement("br"));
-                
-                pathway_ids[m][i] = pid;
-                pathway_checkboxes[id][m].push(pid);
-            } else {
-                pathway_ids[m][i] = null;
+                    pathway_lists[id][m][pid] = [x, label];
+
+                    l.appendChild(x);
+                    l.appendChild(label);
+                    l.appendChild(document.createElement("br"));
+                    
+                    pathway_ids[m][i] = pid;
+                    pathway_checkboxes[id][m].push(pid);
+                } else {
+                    pathway_ids[m][i] = null;
+                }
             }
         }
     }
@@ -764,6 +809,27 @@ function saveResults(flag) {
 function session(flag, result=null) {
     // ?? allow timed save points (each autosave and each manual save gets its own time point) with dropdown menu at session box
     // save session to session node in neo4j server
+    function refreshSavePoints() {
+        let savepoints = document.createElement("select");
+        savepoints.setAttribute("id", "savepointsmenu");
+        savepoints.setAttribute("style", "width: 75%;")
+        let p = document.getElementById("save_points");
+        p.innerHTML = "";
+        p.appendChild(savepoints);
+
+        for (let sp of saveinfo['saveStateOrder']) {
+            let option = document.createElement("option");
+            option.value = sp;
+            option.appendChild(document.createTextNode(saveinfo['saveStates'][sp]));
+            savepoints.appendChild(option);
+        }
+
+        savepoints.onchange = function() {
+            let sp = savepoints.options[savepoints.selectedIndex].value;
+            document.getElementById("savepoint_name").value = saveinfo["saveStates"][sp];
+            session("load");
+        }
+    }
 
     if (flag == "save") {
         let sp = document.getElementById("savepoint_name");
@@ -777,36 +843,8 @@ function session(flag, result=null) {
         query_database("save");
     }
 
-    function refreshSavePoints(result) {
-        //refreshCachedResults();
-        cached_results = result["session_data"];
-
-        let savepoints = document.createElement("select");
-        savepoints.setAttribute("id", "savepointsmenu");
-        savepoints.setAttribute("style", "width: 75%;")
-        let p = document.getElementById("save_points");
-        p.innerHTML = "";
-        p.appendChild(savepoints);
-        for (let sp of result["sp_order"]) {
-            let option = document.createElement("option");
-            option.value = sp;
-            option.appendChild(document.createTextNode(result["session_data"][sp]["Name"]));
-            savepoints.appendChild(option);
-        }
-
-        savepoints.onchange = function() {
-            let sp = savepoints.options[savepoints.selectedIndex].value;
-            document.getElementById("savepoint_name").value = result["session_data"][sp]["savepoint_name"];
-        }
-
-        savepoints.onchange();
-
-    }
-
-
-    if (flag == "load") {
-        query_database("load");
-        //refreshSavePoints(result);
+    if (flag == "saved") {
+        refreshSavePoints();
     }
 
     if (flag == "saveinfo") {
@@ -814,5 +852,21 @@ function session(flag, result=null) {
         document.getElementById("session_name").value = saveinfo["session_id"];
         let status = document.getElementById("session_status");
     }
+    
+    if (flag == "load") {
+        saveinfo["savestate"] = document.getElementById("savepoint_name").value;
+        saveinfo["session_id"] = document.getElementById("session_name").value;
+        saveinfo["load"] = true;
+        query_database("load");
+    }
 
+    if (flag == "loaded") {
+        // set file
+        filedata = cached_results["inputted_file"]["data_set"].join("\n");
+        let label = document.getElementById("filename");
+        label.innerHTML = "";
+        label.appendChild(document.createTextNode(cached_results["inputted_file"]["filename"]));
+        // set user options
+        inputOptionStatus("write");
+    }
 }
