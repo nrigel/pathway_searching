@@ -1,5 +1,4 @@
 var relative_dir; //relative_dir on the server, needed for xhttp call
-var session_id;
 
 var structure_labels = {"metabolites": "Metabolites", 
                     "motif_0": "Motifs (0th Shell)", "motif_1": "Motifs (1st Shell)", "motif_2": "Motifs (2nd Shell)",
@@ -16,6 +15,8 @@ var cy_layout = "cose"; // layout option for cytoscape graphing
 var node_labels = "displayName"; // node attribute that is displayed on cytoscape graph
 var edge_labels = null;//"reaction"; // edge labels from Reactome
 var connect_pathways = true; // connect shared metabolites when multiple pathways are drawn
+var cached_results; // where we store our latest results dict
+var saveinfo = {"session_id": null, "savestate": null, "saveStateNames": null, "saveStateOrder": null, "save": false, "load": false}; // our save variables
 
 document.addEventListener('keydown', function(event) {
 
@@ -30,6 +31,31 @@ document.addEventListener('keydown', function(event) {
         key_flag = 0;
     }
 });
+
+function getCurrentTime(seconds=false) {
+    let d = new Date();
+    let h = d.getHours().toString();
+    if (h.length == 1) {
+        h = "0".concat(h);
+    }
+    let m = d.getMinutes().toString();
+    if (m.length == 1) {
+        m = "0".concat(m);
+    }
+    let y = d.getFullYear().toString();
+    let day = d.getDate().toString();
+    let month = (d.getMonth()+1).toString();
+
+    if (seconds) {
+        let sec = d.getSeconds().toString();
+        if (sec.length == 1) {
+            sec = "0".concat(sec);
+        }
+        return h.concat(":").concat(m).concat(":").concat(sec).concat(" ").concat(month).concat("/").concat(day).concat("/").concat(y);
+    } else {
+        return h.concat(":").concat(m).concat(" ").concat(month).concat("/").concat(day).concat("/").concat(y);
+    }
+}
 
 function check_change(flag) {
     let state;
@@ -104,11 +130,21 @@ function query_database(flag){
     var base_url = window.location.href;
 
     var params = new FormData(document.getElementById("process_load"));
+    params.append("cached_results", JSON.stringify(cached_results));
+    params.append("saveinfo", JSON.stringify(saveinfo));
+
     var userfile = document.getElementById("fileinput").value
 
     if (userfile) {
         document.getElementById("loader").style.display = "block";
-        oReq.open("POST", base_url.concat('Scripts/pathway_search.py'), true);
+        
+        let pyscript = 'Scripts/pathway_search.py';
+
+        if (flag == "save" || flag == "load") {
+            pyscript = 'Scripts/session.py'
+        }
+
+        oReq.open("POST", base_url.concat(pyscript), true);
         oReq.setRequestHeader("Authorization", null);
         
         oReq.onload = function(oEvent) {
@@ -116,11 +152,18 @@ function query_database(flag){
                 //console.log(typeof oReq.response);
                 try {
                     var result = JSON.parse(oReq.response);
+                    cached_results = result; // store result for session saving
+                    saveinfo = result["saveinfo"];
+                    session("saveinfo");
                 }
                 catch(err) {
                     console.log(oReq.response);
                 }
                 
+                if (flag == "save") {
+                    return;
+                }
+
                 let structure_options = result.structure_options;
 
                 clique_checkboxes = {}
@@ -715,4 +758,61 @@ function saveResults(flag) {
     }
 
     downloadLink.click();
+}
+
+
+function session(flag, result=null) {
+    // ?? allow timed save points (each autosave and each manual save gets its own time point) with dropdown menu at session box
+    // save session to session node in neo4j server
+
+    if (flag == "save") {
+        let sp = document.getElementById("savepoint_name");
+        if (sp.value == "" && sp.nodeValue == null) {
+            sp.value = "Save point ".concat(getCurrentTime());
+        }
+
+        cached_results["last_save"] = getCurrentTime(true);
+        saveinfo["save"] = true;
+        saveinfo["savestate"] = sp.value;
+        query_database("save");
+    }
+
+    function refreshSavePoints(result) {
+        //refreshCachedResults();
+        cached_results = result["session_data"];
+
+        let savepoints = document.createElement("select");
+        savepoints.setAttribute("id", "savepointsmenu");
+        savepoints.setAttribute("style", "width: 75%;")
+        let p = document.getElementById("save_points");
+        p.innerHTML = "";
+        p.appendChild(savepoints);
+        for (let sp of result["sp_order"]) {
+            let option = document.createElement("option");
+            option.value = sp;
+            option.appendChild(document.createTextNode(result["session_data"][sp]["Name"]));
+            savepoints.appendChild(option);
+        }
+
+        savepoints.onchange = function() {
+            let sp = savepoints.options[savepoints.selectedIndex].value;
+            document.getElementById("savepoint_name").value = result["session_data"][sp]["savepoint_name"];
+        }
+
+        savepoints.onchange();
+
+    }
+
+
+    if (flag == "load") {
+        query_database("load");
+        //refreshSavePoints(result);
+    }
+
+    if (flag == "saveinfo") {
+        document.getElementById("savepoint_name").value = saveinfo["savestate"];
+        document.getElementById("session_name").value = saveinfo["session_id"];
+        let status = document.getElementById("session_status");
+    }
+
 }
