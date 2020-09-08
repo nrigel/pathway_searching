@@ -39,6 +39,8 @@ structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 's
 species = form.getvalue('specieslist')
 count_cutoff = form.getvalue('cutoff_count') # change to dict of cutoffs for all structure opts
 clique_cutoff = form.getvalue('clique_cutoff')
+id_type = form.getvalue('id_type')
+
 # Read in data file
 if not cached_results['filedata']:
     datafile = form['userfile'].file
@@ -60,31 +62,76 @@ try:
     # Step 2: Match inputted metabolites to NMRT DB to get (sub-)motif info and COLMAR IDs (if needed)
     metabolites = {}
     fold_changes, p_values = [], []
+    for m in data_set[1:]:
+        if isfloat(m[1]):
+            p_value = float(m[1])
+        else:
+            p_value = 1
+        if isfloat(m[2]):
+            fold_change = float(m[2])
+        else:
+            fold_change = 1
+        fold_changes.extend([fold_change])
+        p_values.extend([p_value])
+
+
     #start = time.time()
-    with NMRT._driver.session() as db:
-        for i in range(1, len(data_set)):
-            metabolite = data_set[i][0]
-            
-            if isfloat(data_set[i][1]):
-                p_value = float(data_set[i][1])
-            else:
-                p_value = 1
-            if isfloat(data_set[i][2]):
-                fold_change = float(data_set[i][2])
-            else:
-                fold_change = 1
+    if id_type == 'colmar':
+        with NMRT._driver.session() as db:
+            for i in range(1, len(data_set)):
+                metabolite, fold_change, p_value = data_set[i][0], fold_changes[i-1], p_values[i-1]
 
-            fold_changes.extend([fold_change])
-            p_values.extend([p_value])
+                colmar_matches = db.run('MATCH (m:metabolites) WHERE m.COLMARm = "'+metabolite+'" OR m.COLMARm = "'+metabolite+'_1" OR m.COLMARm = "'+metabolite+'_2" OR m.Name = "'+metabolite+'" OR m.isoName = "'+metabolite+'" RETURN m.COLMARm').value()
+                metabolites[metabolite] = {'metabolites': colmar_matches, 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': metabolite}
+                
+                for opt in [o for o in structure_opts if o != 'metabolites']:
+                    metabolites[metabolite][opt] = set()
+                    for match in colmar_matches:
+                        for s in list(set(db.run('MATCH (m:metabolites)-[*..2]-(M:'+opt+') WHERE m.COLMARm = "'+match+'" RETURN M.SMILES').value())):
+                            metabolites[metabolite][opt].add(s)
 
-            colmar_matches = db.run('MATCH (m:metabolites) WHERE m.COLMARm = "'+metabolite+'" OR m.COLMARm = "'+metabolite+'_1" OR m.COLMARm = "'+metabolite+'_2" OR m.Name = "'+metabolite+'" OR m.isoName = "'+metabolite+'" RETURN m.COLMARm').value()
-            metabolites[metabolite] = {'metabolites': colmar_matches, 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': metabolite}
-            
-            for opt in [o for o in structure_opts if o != 'metabolites']:
-                metabolites[metabolite][opt] = set()
-                for match in colmar_matches:
-                    for s in list(set(db.run('MATCH (m:metabolites)-[*..2]-(M:'+opt+') WHERE m.COLMARm = "'+match+'" RETURN M.SMILES').value())):
-                        metabolites[metabolite][opt].add(s)
+    elif id_type == 'hmdb':
+        with PathBank._driver.session() as db:
+            pw_to_hmdb = {m[1]: m[0] for m in db.run('MATCH (m:Metabolite) RETURN ([m.HMDB_ID, m.PW_ID])').value() if m[0]}
+            hmdb_to_pw = {}
+            for m in pw_to_hmdb:
+                if pw_to_hmdb[m] not in hmdb_to_pw:
+                    hmdb_to_pw[pw_to_hmdb[m]] = []
+                hmdb_to_pw[pw_to_hmdb[m]].extend([m])
+            # make sure HMDB IDs are same size inputted and in the database (zero filling check)
+            hmdb_zfill = len(list(hmdb_to_pw.keys())[0])
+            all_pw_matches = []
+            for i in range(1, len(data_set)):
+                hmdb_id = data_set[i][0]
+                if len(hmdb_id) != hmdb_zfill:
+                    hmdb_id = 'HMDB'+hmdb_id[len('HMDB'):].zfill((hmdb_zfill-4))
+
+                pw_matches = []
+                if hmdb_id in hmdb_to_pw:
+                    pw_matches = hmdb_to_pw[hmdb_id]
+                all_pw_matches.extend(pw_matches)
+
+                fold_change, p_value = fold_changes[i-1], p_values[i-1]
+
+                metabolites[data_set[i][0]] = {'metabolites': pw_matches, 'Fold Change': fold_change, 'P-Value': p_value, 'Metabolite': data_set[i][0]}
+                
+            so = [o for o in structure_opts if o != 'metabolites']
+            if so:
+                # catalogue structures from the DB
+                pw_match_to_opts = {o: {} for o in so}
+                for m in db.run('MATCH (m:Metabolite) RETURN (['+', '.join(['m.'+o for o in structure_opts if o != 'metabolites']+['m.PW_ID'])+'])').value():
+                    if m[-1] not in all_pw_matches:
+                        continue
+                    for i in range(len(so)):
+                        pw_match_to_opts[so[i]][m[-1]] = m[i]
+                # add those motifs and sub-motifs into the metabolite dict
+                for metabolite in data_set[1:]:
+                    for opt in [o for o in structure_opts if o != 'metabolites']:
+                        metabolites[metabolite[0]][opt] = set()
+                        for match in metabolites[metabolite[0]]['metabolites']:
+                            if pw_match_to_opts[opt][match]:
+                                for s in pw_match_to_opts[opt][match]:
+                                    metabolites[metabolite[0]][opt].add(s)
 
     # Step 3: Search for pathways that contain matching metabolites, motifs, and/or sub-motifs
     pathway_search = {'metabolites': {}, 'pathways': {}, 'pathways_to_return': {}, 'pathway_graphs': {}}
@@ -105,11 +152,14 @@ try:
 
             for metabolite in metabolites: # iterate thru user inputted metabolites
                 for s in metabolites[metabolite][opt]: # iterate thru structure options
-                    if opt == 'metabolites':
-                        key = 'COLMARm'
+                    if opt == 'metabolites' and id_type == 'colmar':
+                        key, group, phrase = 'COLMARm', 'COLMARm', '"'+s+'" IN m.'+key
+                    elif opt == 'metabolites' and id_type == 'hmdb':
+                        key, group, phrase = 'PW_ID', 'Metabolite', '"'+s+'" = m.PW_ID'
                     else:
-                        key = opt
-                    for (m, plist) in db.run('MATCH (m:COLMARm) WHERE "'+s+'" IN m.'+key+' RETURN ([m.PW_ID, m.SMPDB_ID])').value():
+                        key, group, phrase = opt, 'COLMARm', '"'+s+'" IN m.'+key
+
+                    for (m, plist) in db.run('MATCH (m:'+group+') WHERE '+phrase+' RETURN ([m.PW_ID, m.SMPDB_ID])').value():
                         for p in plist:
                             if p not in pathway_species or pathway_species[p] != species:
                                 continue
