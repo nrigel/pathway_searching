@@ -1,12 +1,10 @@
 #!/Users/nick/Documents/GitHub/motif_builder/py35env/bin/python
-#!/opt/anaconda2/envs/P3/bin/python
-#!/usr/bin/env python3
-# Python 3.6.10 :: Anaconda, Inc.#!/opt/anaconda2/envs/P3/bin/python
-
-print("Content-type:text/html\r\n\r\n") # print HTML header
 
 # Set up Neo4j connections
 # set parameters for Bolt port, user, and password
+neg_gradient = ['#F00505', '#FF2C05', '#FD6104', '#FD9A01', '#FFCE03']
+pos_gradient = ['#C5E8B7', '#ABE098', '#83D475', '#57C84D', '#2EB62C']
+
 node_format = [{'size': 30, 'color': ['#E50002', '#E02C00', '#DC5900', '#D88500', '#D4AF00', '#C8CF00', '#99CB00', '#6CC700', '#41C300', '#18BF00'], 'shape': 'ellipse'}, 
                 {'size': 30, 'color': '#0074BF', 'shape': 'square'}]
 
@@ -16,30 +14,30 @@ from neo4j_connect import Neo4jServer
 NMRT, PathBank = Neo4jServer('NMRT'), Neo4jServer('PathBank')
 
 from session_save import SaveSession
-import cgi, cgitb, math, json, csv, traceback, time, io
+import sys, math, json, csv, traceback, time, io, numpy
 start = time.time()
 # Step 1: Organize data from HTML form
-form = cgi.FieldStorage() # Create instance of FieldStorage 
+form = json.loads(sys.argv[1]) # load the form data from php
 
 # Get data from fields
 cliques = []
-for row in csv.reader([form.getvalue(c) for c in form.keys() if c[:4] == 'cbox']):
+for row in csv.reader([form[c] for c in form.keys() if c[:4] == 'cbox']):
     ROW = [row[0]]+[r[1:] for r in row[1:]]
     cliques.extend([tuple(ROW)])
 
 prelim = False
-if form.getvalue("search_opt") == 'true':
+if form["search_opt"] == 'true':
     prelim = True
 
-saveinfo = json.loads(form.getvalue('saveinfo'))
-cached_results = json.loads(form.getvalue('cached_results'))
+saveinfo = json.loads(form['saveinfo'])
+cached_results = json.loads(form['cached_results'])
 inputOptions = cached_results['inputOptions']
 
-structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4'] if form.getvalue(o)]
-species = form.getvalue('specieslist')
-count_cutoff = form.getvalue('cutoff_count') # change to dict of cutoffs for all structure opts
-clique_cutoff = form.getvalue('clique_cutoff')
-id_type = form.getvalue('id_type')
+structure_opts = [o for o in ['metabolites', 'motif_0', 'motif_1', 'motif_2', 'submotif_1', 'submotif_2', 'submotif_3', 'submotif_4'] if o in form and form[o]]
+species = form['specieslist']
+count_cutoff = form['cutoff_count'] # change to dict of cutoffs for all structure opts
+clique_cutoff = form['clique_cutoff']
+id_type = form['id_type']
 
 # Read in data file
 if not cached_results['filedata']:
@@ -238,12 +236,24 @@ try:
                             node_dict['Fold Change'], node_dict['P-Value'] = metabolites[colmar]['Fold Change'], metabolites[colmar]['P-Value']
                             # fold change determines color selected from gradient
                             if max(fold_changes) != min(fold_changes):
-                                fcfactor = (node_dict['Fold Change']-min(fold_changes))/(max(fold_changes)-min(fold_changes))*10
-                                color = 0
-                                for i in range(0, 10):
-                                    if abs(fcfactor-i) < abs(fcfactor-color):
-                                        color = i
-                                node_dict['color'] = node_format[0]['color'][color]
+                                if node_dict['Fold Change'] > 0:
+                                    fcfactor = ((node_dict['Fold Change']-min(fold_changes))/(max([f for f in fold_changes if f > 0])-min([f for f in fold_changes if f > 0]))*10)/2.0
+                                    color = 0
+                                    for i in range(0, 5):
+                                        if abs(fcfactor-i) < abs(fcfactor-color):
+                                            color = i
+                                    node_dict['color'] = pos_gradient[color]
+                                elif node_dict['Fold Change'] < 0:
+                                    fcfactor = ((node_dict['Fold Change']-min([f for f in fold_changes if f < 0]))/(max([f for f in fold_changes if f < 0])-min([f for f in fold_changes if f < 0]))*10)/2.0
+                                    fcrange = [min([f for f in fold_changes if f < 0]), numpy.percentile([f for f in fold_changes if f < 0], 0.25), numpy.percentile([f for f in fold_changes if f < 0], 0.5), numpy.percentile([f for f in fold_changes if f < 0], 0.75), max([f for f in fold_changes if f < 0])]
+                                    color = 0
+                                    for i in range(len(fcrange)):
+                                        if abs(node_dict['Fold Change']-fcrange[i]) < abs(node_dict['Fold Change']-fcrange[color]):
+                                            color = i
+                                    print(color, fcfactor, node_dict['Fold Change'], [f for f in fold_changes if f < 0])
+                                    node_dict['color'] = neg_gradient[color]
+                                else:
+                                    node_dict['color'] = '#FEF001'
                             else:
                                 node_dict['color'] = node_format[1]['color']
                             # p-value determines size scaling

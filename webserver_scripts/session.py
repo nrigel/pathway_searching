@@ -1,27 +1,25 @@
 #!/Users/nick/Documents/GitHub/motif_builder/py35env/bin/python
 
-print("Content-type:text/html\r\n\r\n") # print HTML header
-
 try:
     from neo4j_connect import Neo4jServer
     PathBank = Neo4jServer('PathBank')
 
-    import cgi, cgitb, json, traceback
+    import sys, json, traceback
 
     from session_save import SaveSession
     
 
-    form = cgi.FieldStorage() # Create instance of FieldStorage 
-    saveinfo = json.loads(form.getvalue('saveinfo'))
-    cached_results = json.loads(form.getvalue('cached_results'))
+    form = json.loads(sys.argv[1]) # load the form data from php
+    saveinfo = json.loads(form['saveinfo'])
+    cached_results = json.loads(form['cached_results'])
 
     with PathBank._driver.session() as db:
-        if saveinfo['save']:
+        if 'save' in saveinfo and saveinfo['save']:
             saveinfo = SaveSession(db, cached_results, saveinfo)
             saveinfo['save'] = False
         
-        if saveinfo['load']:
-            if saveinfo['session_id']:
+        if 'load' in saveinfo and saveinfo['load']:
+            if 'session_id' in saveinfo and saveinfo['session_id']:
                 session = db.run('MATCH (n:Sessions {Name: "'+saveinfo['session_id']+'"}) RETURN n').value()
                 if session:
                     session = dict(session[0])

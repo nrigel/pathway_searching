@@ -179,7 +179,8 @@ function query_database(flag){
             pyscript = 'Scripts/session.py'
         }
 
-        oReq.open("POST", base_url.concat(pyscript), true);
+        params.append("pyscript", JSON.stringify(pyscript));
+        oReq.open("POST", base_url.concat("pyrequest.php"), true);
         oReq.setRequestHeader("Authorization", null);
         
         oReq.onload = function(oEvent) {
